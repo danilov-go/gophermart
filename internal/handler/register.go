@@ -23,6 +23,8 @@ const tokenExp = time.Hour * 24
 type storage interface {
 	SaveUser(login, passwordHash string) (int, error)
 	GetUser(login string) (models.User, error)
+	SaveOrders(number string, orders models.Order) error
+	GetOrders(login string) ([]models.Orders, error)
 }
 
 type loginPassword struct {

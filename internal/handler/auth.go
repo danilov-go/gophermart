@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, login string)
+type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, login string, s storage)
 
 func GetUserLogin(tokenString, key string) (string, error) {
 	claims := &Claims{}
@@ -41,6 +41,6 @@ func AuthMiddleware(s storage, key string, h LoginHandlerFunc) http.HandlerFunc 
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
-		h(w, r, login)
+		h(w, r, login, s)
 	}
 }

@@ -30,6 +30,8 @@ func main() {
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", handler.RegisterUser(storage, configs.Key))
 		r.Post("/login", handler.LoginUser(storage, configs.Key))
+		r.Post("/orders", handler.AuthMiddleware(storage, configs.Key, handler.SaveOrderHandler()))
+		r.Get("/orders", handler.AuthMiddleware(storage, configs.Key, handler.GetOrderHandler()))
 	})
 	serv := server.New(configs.Net.String(), logger.Log.Sugar(), r)
 	if err := serv.Run(); err != nil {
