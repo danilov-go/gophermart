@@ -26,6 +26,8 @@ type storage interface {
 	SaveOrders(number string, orders models.Order) error
 	GetOrders(login string) ([]models.Orders, error)
 	GetBalance(login string) (models.Balance, error)
+	Withdraw(login string, order string, bal float64) error
+	GetWithdraw(login string) ([]models.Withdraw, error)
 }
 
 type loginPassword struct {

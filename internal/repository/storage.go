@@ -3,6 +3,7 @@ package repository
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/danilov-go/gophermart/internal/models"
 )
@@ -97,4 +98,25 @@ func (m *MemStorage) GetBalance(login string) (models.Balance, error) {
 		Withdrawn: countW,
 	}
 	return userBalance, nil
+}
+
+func (m *MemStorage) Withdraw(login string, order string, bal float64) error {
+	withdraw := models.Withdraw{
+		Order:        order,
+		Sum:          bal,
+		Processed_at: time.Now(),
+	}
+	m.withdrawals[login] = append(m.withdrawals[login], withdraw)
+	return nil
+}
+
+func (m *MemStorage) GetWithdraw(login string) ([]models.Withdraw, error) {
+	withdraw, ok := m.withdrawals[login]
+	if !ok {
+		return []models.Withdraw{}, models.ErrNoWithdrawalsFound
+	}
+	slices.SortFunc(withdraw, func(i, j models.Withdraw) int {
+		return i.Processed_at.Compare(j.Processed_at)
+	})
+	return withdraw, nil
 }

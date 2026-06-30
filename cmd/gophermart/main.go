@@ -32,6 +32,9 @@ func main() {
 		r.Post("/login", handler.LoginUser(storage, configs.Key))
 		r.Post("/orders", handler.AuthMiddleware(storage, configs.Key, handler.SaveOrderHandler()))
 		r.Get("/orders", handler.AuthMiddleware(storage, configs.Key, handler.GetOrderHandler()))
+		r.Get("/balance", handler.AuthMiddleware(storage, configs.Key, handler.GetBalanceHandler()))
+		r.Post("/balance/withdraw", handler.AuthMiddleware(storage, configs.Key, handler.WithdrawtBalanceHandler()))
+		r.Get("/withdrawals", handler.AuthMiddleware(storage, configs.Key, handler.GetWithdrawalsBalanceHandler()))
 	})
 	serv := server.New(configs.Net.String(), logger.Log.Sugar(), r)
 	if err := serv.Run(); err != nil {
