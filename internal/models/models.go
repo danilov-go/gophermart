@@ -36,3 +36,14 @@ var (
 	ErrOrderAlreadyUploadedByOtherUser = errors.New("номер заказа уже был загружен другим пользователем")
 	ErrNoOrdersFound                   = errors.New("у пользователя нет заказов")
 )
+
+type Balance struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
+}
+
+type Withdraw struct {
+	Number       string    `json:"number"`
+	Sum          float64   `json:"sum"`
+	Processed_at time.Time `json:"processed_at"`
+}

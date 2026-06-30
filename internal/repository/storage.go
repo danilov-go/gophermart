@@ -8,16 +8,18 @@ import (
 )
 
 type MemStorage struct {
-	nextID int
-	users  map[string]models.User
-	orders map[string]models.Order
+	nextID      int
+	users       map[string]models.User
+	orders      map[string]models.Order
+	withdrawals map[string][]models.Withdraw
 }
 
 func InitMemStorage() *MemStorage {
 	return &MemStorage{
-		nextID: 1,
-		users:  make(map[string]models.User),
-		orders: make(map[string]models.Order),
+		nextID:      1,
+		users:       make(map[string]models.User),
+		orders:      make(map[string]models.Order),
+		withdrawals: make(map[string][]models.Withdraw),
 	}
 }
 
@@ -76,4 +78,23 @@ func (m *MemStorage) GetOrders(login string) ([]models.Orders, error) {
 		return i.UploadedAt.Compare(j.UploadedAt)
 	})
 	return userOrders, nil
+}
+
+func (m *MemStorage) GetBalance(login string) (models.Balance, error) {
+	var userBalance models.Balance
+	var countW float64
+	var countA float64
+	for _, order := range m.orders {
+		if order.Login == login && order.Status == models.PROCESSED {
+			countA += order.Accrual
+		}
+	}
+	for _, w := range m.withdrawals[login] {
+		countW += w.Sum
+	}
+	userBalance = models.Balance{
+		Current:   countA - countW,
+		Withdrawn: countW,
+	}
+	return userBalance, nil
 }

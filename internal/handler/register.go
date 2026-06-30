@@ -25,6 +25,7 @@ type storage interface {
 	GetUser(login string) (models.User, error)
 	SaveOrders(number string, orders models.Order) error
 	GetOrders(login string) ([]models.Orders, error)
+	GetBalance(login string) (models.Balance, error)
 }
 
 type loginPassword struct {
