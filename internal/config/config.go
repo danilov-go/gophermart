@@ -21,6 +21,7 @@ type ConfigServer struct {
 	DatabaseUri   string     `env:"DATABASE_URI"`
 	AccrualAddres string     `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	Key           string     `env:"SECRET_KEY"`
+	Interval      int        `env:"INTERVAL"`
 }
 
 func (n NetAddress) String() string {
@@ -50,6 +51,7 @@ func (s *ConfigServer) Get() {
 	f.StringVar(&s.DatabaseUri, "d", s.DatabaseUri, "DATABASE_URI")
 	f.StringVar(&s.AccrualAddres, "r", s.AccrualAddres, "ACCRUAL_SYSTEM_ADDRESS")
 	f.StringVar(&s.Key, "k", s.Key, "SECRET_KEY")
+	f.IntVar(&s.Interval, "i", s.Interval, "INTERVAL")
 	err := f.Parse(os.Args[1:])
 	if err != nil {
 		fmt.Println(err)

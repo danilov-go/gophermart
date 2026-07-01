@@ -31,13 +31,6 @@ type Orders struct {
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
-var (
-	ErrOrderAlreadyUploadedBySameUser  = errors.New("номер заказа уже был загружен этим пользователем")
-	ErrOrderAlreadyUploadedByOtherUser = errors.New("номер заказа уже был загружен другим пользователем")
-	ErrNoOrdersFound                   = errors.New("у пользователя нет заказов")
-	ErrNoWithdrawalsFound              = errors.New("нет ни одного списания")
-)
-
 type Balance struct {
 	Current   float64 `json:"current"`
 	Withdrawn float64 `json:"withdrawn"`
@@ -48,3 +41,15 @@ type Withdraw struct {
 	Sum          float64   `json:"sum"`
 	Processed_at time.Time `json:"processed_at"`
 }
+type Accrual struct {
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accrual float64 `json:"accrual,omitempty"`
+}
+
+var (
+	ErrOrderAlreadyUploadedBySameUser  = errors.New("номер заказа уже был загружен этим пользователем")
+	ErrOrderAlreadyUploadedByOtherUser = errors.New("номер заказа уже был загружен другим пользователем")
+	ErrNoOrdersFound                   = errors.New("у пользователя нет заказов")
+	ErrNoWithdrawalsFound              = errors.New("нет ни одного списания")
+)

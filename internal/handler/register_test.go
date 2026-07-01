@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 type want struct {
@@ -62,7 +63,9 @@ func TestRegisterUser(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := repository.InitMemStorage()
 			r := chi.NewRouter()
-			r.Post("/register", RegisterUser(storage, key))
+			logger := zaptest.NewLogger(t)
+			h := NewHandlers(storage, logger.Sugar())
+			r.Post("/register", h.RegisterUser(key))
 			body, err := json.Marshal(tt.user)
 			require.NoError(t, err)
 			req, err := http.NewRequest(http.MethodPost, "/register", bytes.NewBuffer(body))
@@ -156,7 +159,9 @@ func TestLoginUser(t *testing.T) {
 			_, err := storage.SaveUser(expLogin, password)
 			require.NoError(t, err)
 			r := chi.NewRouter()
-			r.Post("/login", LoginUser(storage, key))
+			logger := zaptest.NewLogger(t)
+			h := NewHandlers(storage, logger.Sugar())
+			r.Post("/login", h.LoginUser(key))
 			body, err := json.Marshal(tt.user)
 			require.NoError(t, err)
 			req, err := http.NewRequest(http.MethodPost, "/login", bytes.NewBuffer(body))

@@ -13,6 +13,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 var expLogin = "login1"
@@ -75,8 +76,10 @@ func TestSaveOrderHandler(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/user/orders", strings.NewReader(tt.body))
 			req.Header.Set("Content-Type", tt.contentType)
 			rec := httptest.NewRecorder()
-			handlerFunc := handler.SaveOrderHandler()
-			handlerFunc(rec, req, tt.login, storage)
+			logger := zaptest.NewLogger(t)
+			h := handler.NewHandlers(storage, logger.Sugar())
+			handlerFunc := h.SaveOrderHandler()
+			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, rec.Code, tt.code)
 			if rec.Code == http.StatusOK || rec.Code == http.StatusAccepted {
 				orders, err := storage.GetOrders(tt.login)
@@ -129,8 +132,10 @@ func TestGetOrderHandler(t *testing.T) {
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/orders", nil)
 			rec := httptest.NewRecorder()
-			handlerFunc := handler.GetOrderHandler()
-			handlerFunc(rec, req, tt.login, storage)
+			logger := zaptest.NewLogger(t)
+			h := handler.NewHandlers(storage, logger.Sugar())
+			handlerFunc := h.GetOrderHandler()
+			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, tt.code, rec.Code)
 			if tt.checkJSON {
 				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))

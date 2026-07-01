@@ -13,6 +13,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 const expNumberW = "2377225624"
@@ -57,8 +58,10 @@ func TestGetBalanceHandler(t *testing.T) {
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/balance", nil)
 			rec := httptest.NewRecorder()
-			handlerFunc := handler.GetBalanceHandler()
-			handlerFunc(rec, req, tt.login, storage)
+			logger := zaptest.NewLogger(t)
+			h := handler.NewHandlers(storage, logger.Sugar())
+			handlerFunc := h.GetBalanceHandler()
+			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, tt.code, rec.Code)
 			assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			var balance models.Balance
@@ -105,8 +108,10 @@ func TestGetWithdrawalsBalanceHandler(t *testing.T) {
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/withdrawals", nil)
 			rec := httptest.NewRecorder()
-			handlerFunc := handler.GetWithdrawalsBalanceHandler()
-			handlerFunc(rec, req, tt.login, storage)
+			logger := zaptest.NewLogger(t)
+			h := handler.NewHandlers(storage, logger.Sugar())
+			handlerFunc := h.GetWithdrawalsBalanceHandler()
+			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			if tt.setup {
 				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
@@ -192,8 +197,10 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			require.NoError(t, err)
 			req := httptest.NewRequest(http.MethodPost, "/api/user/balance/withdraw", bytes.NewReader(bodyBytes))
 			rec := httptest.NewRecorder()
-			handlerFunc := handler.WithdrawtBalanceHandler()
-			handlerFunc(rec, req, tt.login, storage)
+			logger := zaptest.NewLogger(t)
+			h := handler.NewHandlers(storage, logger.Sugar())
+			handlerFunc := h.WithdrawtBalanceHandler()
+			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			if rec.Code == http.StatusOK {
 				withdraw, err := storage.GetWithdraw(tt.login)

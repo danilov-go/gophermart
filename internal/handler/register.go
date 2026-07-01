@@ -9,26 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/danilov-go/gophermart/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
-
-type Claims struct {
-	Login string `json:"login"`
-	jwt.RegisteredClaims
-}
-
-const tokenExp = time.Hour * 24
-
-type storage interface {
-	SaveUser(login, passwordHash string) (int, error)
-	GetUser(login string) (models.User, error)
-	SaveOrders(number string, orders models.Order) error
-	GetOrders(login string) ([]models.Orders, error)
-	GetBalance(login string) (models.Balance, error)
-	Withdraw(login string, order string, bal float64) error
-	GetWithdraw(login string) ([]models.Withdraw, error)
-}
 
 type loginPassword struct {
 	Login    string `json:"login"`
@@ -70,31 +52,36 @@ func decode(r *http.Request) (loginPassword, error) {
 	return user, nil
 }
 
-func RegisterUser(s storage, key string) http.HandlerFunc {
+func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := decode(r)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Errorw("ошибка десилиризации", "error", err)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		if user.Login == "" || user.Password == "" {
-			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Errorw("пустой логин или пароль", "login", user.Login, "password", user.Password)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		_, err = s.GetUser(user.Login)
+		_, err = h.storage.GetUser(user.Login)
 		if err == nil {
-			w.WriteHeader(http.StatusConflict)
+			h.logger.Errorw("пользователь с таким именем уже существует", "error", err)
+			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
 		hashStringPassword := hash(user.Password, key)
-		_, err = s.SaveUser(user.Login, hashStringPassword)
+		_, err = h.storage.SaveUser(user.Login, hashStringPassword)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Errorw("ошибка сохранения пользователя", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		signedToken, err := buildJWTString(user.Login, key)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Errorw("ошибка аутентификации", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Authorization", "Bearer "+signedToken)
@@ -102,31 +89,35 @@ func RegisterUser(s storage, key string) http.HandlerFunc {
 	})
 }
 
-func LoginUser(s storage, key string) http.HandlerFunc {
+func (h *BalanceHandler) LoginUser(key string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := decode(r)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Errorw("ошибка десериализации", "error", err)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-
 		if user.Login == "" || user.Password == "" {
-			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Errorw("пустой логин или пароль", "login", user.Login)
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		store, err := s.GetUser(user.Login)
+		store, err := h.storage.GetUser(user.Login)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
+			h.logger.Errorw("неверный логин или пароль", "error", err)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 		hashStringPassword := hash(user.Password, key)
 		if !hmac.Equal([]byte(hashStringPassword), []byte(store.PasswordHash)) {
-			w.WriteHeader(http.StatusUnauthorized)
+			h.logger.Errorw("пароли не совпадают")
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized) // 401
 			return
 		}
 		signedToken, err := buildJWTString(user.Login, key)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Errorw("ошибка аутентификации", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Authorization", "Bearer "+signedToken)

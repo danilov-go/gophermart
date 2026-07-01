@@ -5,11 +5,19 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, login string, s storage)
+type Claims struct {
+	Login string `json:"login"`
+	jwt.RegisteredClaims
+}
+
+const tokenExp = time.Hour * 24
+
+type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, login string)
 
 func GetUserLogin(tokenString, key string) (string, error) {
 	claims := &Claims{}
@@ -28,7 +36,7 @@ func GetUserLogin(tokenString, key string) (string, error) {
 	return claims.Login, nil
 }
 
-func AuthMiddleware(s storage, key string, h LoginHandlerFunc) http.HandlerFunc {
+func AuthMiddleware(key string, h LoginHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
 		if token == "" {
@@ -41,6 +49,6 @@ func AuthMiddleware(s storage, key string, h LoginHandlerFunc) http.HandlerFunc 
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
-		h(w, r, login, s)
+		h(w, r, login)
 	}
 }

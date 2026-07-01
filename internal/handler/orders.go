@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -32,31 +31,34 @@ func validLuna(number string) error {
 	}
 	if sum%10 != 0 {
 		return errors.New("номер заказа не прошёл проверку по алгоритму Луна")
-
 	}
 	return nil
 }
 
-func SaveOrderHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string, s storage) {
+func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request, login string) {
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") {
-			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Errorw("не соответствие content-type", "content-type", r.Header.Get("Content-Type"))
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Errorw("ошибка чтения тела запроса", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		defer r.Body.Close()
 		number := strings.TrimSpace(string(body))
 		if number == "" {
-			w.WriteHeader(http.StatusBadRequest)
+			h.logger.Errorw("пустой номер заказа", "error", errors.New("получен пустой номер заказа"))
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
 		err = validLuna(number)
 		if err != nil {
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			h.logger.Errorw("ошибка валидации номера заказа", "error", err)
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
 		orderSave := models.Order{
@@ -64,17 +66,18 @@ func SaveOrderHandler() LoginHandlerFunc {
 			Status:     models.NEW,
 			UploadedAt: time.Now(),
 		}
-		err = s.SaveOrders(number, orderSave)
+		err = h.storage.SaveOrders(number, orderSave)
 		if err != nil {
 			switch {
 			case errors.Is(err, models.ErrOrderAlreadyUploadedBySameUser):
 				w.WriteHeader(http.StatusOK)
 				return
 			case errors.Is(err, models.ErrOrderAlreadyUploadedByOtherUser):
-				w.WriteHeader(http.StatusConflict)
+				http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 				return
 			default:
-				w.WriteHeader(http.StatusInternalServerError)
+				h.logger.Errorw("ошибка сохранения заказа", "error", err)
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 		}
@@ -82,28 +85,30 @@ func SaveOrderHandler() LoginHandlerFunc {
 	}
 }
 
-func GetOrderHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string, s storage) {
-		orders, err := s.GetOrders(login)
+func (h *BalanceHandler) GetOrderHandler() LoginHandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request, login string) {
+		orders, err := h.storage.GetOrders(login)
 		if err != nil {
 			if errors.Is(err, models.ErrNoOrdersFound) {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Errorw("ошибка получения заказа", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		var buf bytes.Buffer
 		err = json.NewEncoder(&buf).Encode(orders)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			h.logger.Errorw("ошибка сериализации", "error", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, err = w.Write(buf.Bytes())
 		if err != nil {
-			fmt.Println(err)
+			h.logger.Errorw("ошибка отправки данных", "error", err)
 			return
 		}
 	}
