@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+
 	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/models"
-	"github.com/danilov-go/gophermart/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -70,7 +71,7 @@ func TestSaveOrderHandler(t *testing.T) {
 			code:        http.StatusConflict,
 		},
 	}
-	storage := repository.InitMemStorage()
+	storage := mem.InitMemStorage()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/user/orders", strings.NewReader(tt.body))
@@ -121,7 +122,7 @@ func TestGetOrderHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			if tt.checkJSON {
 				err := storage.SaveOrders(expNumber, models.Order{
 					Login:      expLogin,

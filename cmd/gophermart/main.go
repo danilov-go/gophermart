@@ -7,7 +7,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/config"
 	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/logger"
-	"github.com/danilov-go/gophermart/internal/repository"
+	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
 	"github.com/danilov-go/gophermart/internal/server"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -30,7 +30,7 @@ func main() {
 	configs.Get()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	storage := repository.InitMemStorage()
+	storage := mem.InitMemStorage()
 	agent := accrual.New(configs.Interval, configs.AccrualAddres, logger.Log.Sugar(), storage)
 	go agent.Worker(ctx)
 

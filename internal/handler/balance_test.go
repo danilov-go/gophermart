@@ -10,7 +10,8 @@ import (
 
 	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/models"
-	"github.com/danilov-go/gophermart/internal/repository"
+	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -44,7 +45,7 @@ func TestGetBalanceHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			if tt.setup {
 				err := storage.SaveOrders(expNumber, models.Order{
 					Login:      expLogin,
@@ -101,7 +102,7 @@ func TestGetWithdrawalsBalanceHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			if tt.setup {
 				err := storage.Withdraw(expLogin, expNumberW, expWithdraw)
 				require.NoError(t, err)
@@ -183,7 +184,7 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			if tt.setup {
 				err := storage.SaveOrders(expNumberW, models.Order{
 					Login:      expLogin,

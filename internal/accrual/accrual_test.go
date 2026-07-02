@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+
 	"github.com/danilov-go/gophermart/internal/accrual"
 	"github.com/danilov-go/gophermart/internal/models"
-	"github.com/danilov-go/gophermart/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
@@ -71,7 +72,7 @@ func TestWorker_TableDriven(t *testing.T) {
 				w.WriteHeader(tt.code)
 			}))
 			defer server.Close()
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			logger := zaptest.NewLogger(t)
 			order := expOrder
 			if tt.setup {

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/danilov-go/gophermart/internal/repository"
+	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +61,7 @@ func TestRegisterUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			r := chi.NewRouter()
 			logger := zaptest.NewLogger(t)
 			h := NewHandlers(storage, logger.Sugar())
@@ -154,7 +154,7 @@ func TestLoginUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := repository.InitMemStorage()
+			storage := mem.InitMemStorage()
 			password := hash(expPassword, key)
 			_, err := storage.SaveUser(expLogin, password)
 			require.NoError(t, err)
