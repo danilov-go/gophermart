@@ -3,6 +3,7 @@ package accrual
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/danilov-go/gophermart/internal/models"
@@ -67,16 +68,27 @@ func (a *Agent) Worker(ctx context.Context) {
 					continue
 				}
 				if resp.StatusCode() == http.StatusTooManyRequests {
+					retryAfter := resp.Header().Get("Retry-After")
+					if retryAfter == "" {
+						break
+					}
+					retryTime, err := strconv.Atoi(retryAfter)
+					if err != nil {
+						a.logger.Errorw("ошибка в преобразовании retryTime в число", "error", err)
+					}
+					select {
+					case <-time.After(time.Duration(retryTime) * time.Second):
+					case <-ctx.Done():
+						return
+					}
 					break
 				}
 				if resp.StatusCode() != http.StatusOK {
 					continue
 				}
-				if accrual.Status == "PROCESSED" || accrual.Status == "INVALID" {
-					err = a.s.UpdateStatus(accrual)
-					if err != nil {
-						a.logger.Errorw("ошибка обновления статуса", "error", err)
-					}
+				err = a.s.UpdateStatus(accrual)
+				if err != nil {
+					a.logger.Errorw("ошибка обновления статуса", "error", err)
 				}
 			}
 		case <-ctx.Done():
