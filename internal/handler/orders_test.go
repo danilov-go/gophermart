@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+	"github.com/danilov-go/gophermart/internal/repository/memory"
 
 	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/models"
@@ -71,7 +71,7 @@ func TestSaveOrderHandler(t *testing.T) {
 			code:        http.StatusConflict,
 		},
 	}
-	storage := mem.InitMemStorage()
+	storage := memory.InitMemStorage()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/user/orders", strings.NewReader(tt.body))
@@ -83,7 +83,7 @@ func TestSaveOrderHandler(t *testing.T) {
 			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, rec.Code, tt.code)
 			if rec.Code == http.StatusOK || rec.Code == http.StatusAccepted {
-				orders, err := storage.GetOrders(tt.login)
+				orders, err := storage.GetOrders(t.Context(), tt.login)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, orders)
 				var found bool
@@ -122,9 +122,9 @@ func TestGetOrderHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			if tt.checkJSON {
-				err := storage.SaveOrders(expNumber, models.Order{
+				err := storage.SaveOrders(t.Context(), expNumber, models.Order{
 					Login:      expLogin,
 					Status:     models.NEW,
 					UploadedAt: time.Now(),

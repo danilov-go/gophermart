@@ -54,6 +54,7 @@ func decode(r *http.Request) (loginPassword, error) {
 
 func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		user, err := decode(r)
 		if err != nil {
 			h.logger.Errorw("ошибка десилиризации", "error", err)
@@ -65,15 +66,14 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		_, err = h.storage.GetUser(user.Login)
-		if err == nil {
-			h.logger.Errorw("пользователь с таким именем уже существует", "error", err)
-			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
-			return
-		}
 		hashStringPassword := hash(user.Password, key)
-		_, err = h.storage.SaveUser(user.Login, hashStringPassword)
+		_, err = h.storage.SaveUser(ctx, user.Login, hashStringPassword)
 		if err != nil {
+			if err.Error() == "логин занят" {
+				h.logger.Errorw("пользователь с таким именем уже существует", "error", err)
+				http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
+				return
+			}
 			h.logger.Errorw("ошибка сохранения пользователя", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -91,6 +91,7 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 
 func (h *BalanceHandler) LoginUser(key string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		user, err := decode(r)
 		if err != nil {
 			h.logger.Errorw("ошибка десериализации", "error", err)
@@ -102,7 +103,7 @@ func (h *BalanceHandler) LoginUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		store, err := h.storage.GetUser(user.Login)
+		store, err := h.storage.GetUser(ctx, user.Login)
 		if err != nil {
 			h.logger.Errorw("неверный логин или пароль", "error", err)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)

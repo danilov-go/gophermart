@@ -16,7 +16,8 @@ type orderBalance struct {
 
 func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, login string) {
-		balance, err := h.storage.GetBalance(login)
+		ctx := r.Context()
+		balance, err := h.storage.GetBalance(ctx, login)
 		if err != nil {
 			h.logger.Errorw("ошибка получения баланса", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -41,6 +42,7 @@ func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
 
 func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, login string) {
+		ctx := r.Context()
 		var buf bytes.Buffer
 		var order orderBalance
 		_, err := buf.ReadFrom(r.Body)
@@ -66,7 +68,7 @@ func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
-		balance, err := h.storage.GetBalance(login)
+		balance, err := h.storage.GetBalance(ctx, login)
 		if err != nil {
 			h.logger.Errorw("ошибка получения баланса", "error", err)
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -77,7 +79,7 @@ func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 			http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
 			return
 		}
-		err = h.storage.Withdraw(login, order.Order, order.Sum)
+		err = h.storage.Withdraw(ctx, login, order.Order, order.Sum)
 		if err != nil {
 			h.logger.Errorw("ошибка списания", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -89,7 +91,8 @@ func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 
 func (h *BalanceHandler) GetWithdrawalsBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, login string) {
-		withdraws, err := h.storage.GetWithdraw(login)
+		ctx := r.Context()
+		withdraws, err := h.storage.GetWithdraw(ctx, login)
 		if err != nil {
 			if errors.Is(err, models.ErrNoWithdrawalsFound) {
 				w.WriteHeader(http.StatusNoContent)

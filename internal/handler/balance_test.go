@@ -10,7 +10,7 @@ import (
 
 	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/models"
-	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+	"github.com/danilov-go/gophermart/internal/repository/memory"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,16 +45,16 @@ func TestGetBalanceHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			if tt.setup {
-				err := storage.SaveOrders(expNumber, models.Order{
+				err := storage.SaveOrders(t.Context(), expNumber, models.Order{
 					Login:      expLogin,
 					Status:     models.PROCESSED,
 					Accrual:    expAcrual,
 					UploadedAt: time.Now(),
 				})
 				require.NoError(t, err)
-				err = storage.Withdraw(expLogin, expNumberW, expWithdraw)
+				err = storage.Withdraw(t.Context(), expLogin, expNumberW, expWithdraw)
 				require.NoError(t, err)
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/balance", nil)
@@ -102,9 +102,9 @@ func TestGetWithdrawalsBalanceHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			if tt.setup {
-				err := storage.Withdraw(expLogin, expNumberW, expWithdraw)
+				err := storage.Withdraw(t.Context(), expLogin, expNumberW, expWithdraw)
 				require.NoError(t, err)
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/withdrawals", nil)
@@ -184,9 +184,9 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			if tt.setup {
-				err := storage.SaveOrders(expNumberW, models.Order{
+				err := storage.SaveOrders(t.Context(), expNumberW, models.Order{
 					Login:      expLogin,
 					Status:     models.PROCESSED,
 					Accrual:    expAcrual,
@@ -204,12 +204,12 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			handlerFunc(rec, req, tt.login)
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			if rec.Code == http.StatusOK {
-				withdraw, err := storage.GetWithdraw(tt.login)
+				withdraw, err := storage.GetWithdraw(t.Context(), tt.login)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, withdraw)
 				assert.Equal(t, tt.body.Order, withdraw[0].Order)
 				assert.Equal(t, tt.body.Sum, withdraw[0].Sum)
-				balance, err := storage.GetBalance(tt.login)
+				balance, err := storage.GetBalance(t.Context(), tt.login)
 				assert.NoError(t, err)
 				expectedCurrent := expAcrual - tt.body.Sum
 				assert.Equal(t, expectedCurrent, balance.Current)

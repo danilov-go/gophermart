@@ -42,21 +42,6 @@ func InitDB(ps string) (*storageDB, error) {
 	}, nil
 }
 
-// func (d *storageDB) SaveCounters(ctx context.Context, name string, delta int64) error {
-// 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-// 	defer cancel()
-// 	query := `
-// 		INSERT INTO metrics (id, mtype, delta) VALUES ($1, 'counter', $2)
-// 		ON CONFLICT (id)
-// 		DO UPDATE SET delta = metrics.delta + EXCLUDED.delta
-// 		`
-// 	_, err := d.db.ExecContext(ctx, query, name, delta)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
 // func (d *storageDB) SaveGauges(ctx context.Context, name string, value float64) error {
 // 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 // 	defer cancel()

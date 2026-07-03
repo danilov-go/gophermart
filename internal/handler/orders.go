@@ -37,6 +37,7 @@ func validLuna(number string) error {
 
 func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, login string) {
+		ctx := r.Context()
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") {
 			h.logger.Errorw("не соответствие content-type", "content-type", r.Header.Get("Content-Type"))
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
@@ -66,7 +67,7 @@ func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
 			Status:     models.NEW,
 			UploadedAt: time.Now(),
 		}
-		err = h.storage.SaveOrders(number, orderSave)
+		err = h.storage.SaveOrders(ctx, number, orderSave)
 		if err != nil {
 			switch {
 			case errors.Is(err, models.ErrOrderAlreadyUploadedBySameUser):
@@ -87,7 +88,8 @@ func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
 
 func (h *BalanceHandler) GetOrderHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, login string) {
-		orders, err := h.storage.GetOrders(login)
+		ctx := r.Context()
+		orders, err := h.storage.GetOrders(ctx, login)
 		if err != nil {
 			if errors.Is(err, models.ErrNoOrdersFound) {
 				w.WriteHeader(http.StatusNoContent)

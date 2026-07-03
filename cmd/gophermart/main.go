@@ -7,7 +7,8 @@ import (
 	"github.com/danilov-go/gophermart/internal/config"
 	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/logger"
-	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+	"github.com/danilov-go/gophermart/internal/repository/db"
+	"github.com/danilov-go/gophermart/internal/repository/memory"
 	"github.com/danilov-go/gophermart/internal/server"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,7 +20,8 @@ func main() {
 			Host: "localhost",
 			Port: 8080,
 		},
-		DatabaseUri:   "host=localhost user=gophermart password=123 dbname=gophermart sslmode=disable",
+		DatabaseUri: "",
+		//"host=localhost user=gophermart password=123 dbname=gophermart sslmode=disable",
 		AccrualAddres: "",
 		Key:           "my_secret_key",
 		Interval:      5,
@@ -30,10 +32,16 @@ func main() {
 	configs.Get()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	storage := mem.InitMemStorage()
+	db, err := db.InitDB(configs.DatabaseUri)
+	var storage handler.Storage
+	if err != nil {
+		logger.Log.Sugar().Infow("ошибка инициализации базы данных", "error", err)
+		storage = memory.InitMemStorage()
+	} else {
+		storage = db
+	}
 	agent := accrual.New(configs.Interval, configs.AccrualAddres, logger.Log.Sugar(), storage)
 	go agent.Worker(ctx)
-
 	h := handler.NewHandlers(storage, logger.Log.Sugar())
 	r := chi.NewRouter()
 	r.Use(middleware.StripSlashes)

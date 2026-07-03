@@ -14,19 +14,19 @@ type log interface {
 	Errorw(msg string, keysAndValues ...any)
 }
 
-type storage interface {
-	GetUnOrders() ([]models.Orders, error)
-	UpdateStatus(accrual models.Accrual) error
+type Storage interface {
+	GetUnOrders(ctx context.Context) ([]models.Orders, error)
+	UpdateStatus(ctx context.Context, accrual models.Accrual) error
 }
 
 type Agent struct {
 	Client   *resty.Client
 	interval int
-	s        storage
+	s        Storage
 	logger   log
 }
 
-func New(interval int, addres string, l log, s storage) *Agent {
+func New(interval int, addres string, l log, s Storage) *Agent {
 	client := resty.New()
 	client.SetTimeout(time.Second * 5)
 	client.SetBaseURL(addres)
@@ -45,7 +45,7 @@ func (a *Agent) Worker(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			orders, err := a.s.GetUnOrders()
+			orders, err := a.s.GetUnOrders(ctx)
 			if err != nil {
 				a.logger.Errorw("ошибка в получении заказов", "error", err)
 				continue
@@ -86,7 +86,7 @@ func (a *Agent) Worker(ctx context.Context) {
 				if resp.StatusCode() != http.StatusOK {
 					continue
 				}
-				err = a.s.UpdateStatus(accrual)
+				err = a.s.UpdateStatus(ctx, accrual)
 				if err != nil {
 					a.logger.Errorw("ошибка обновления статуса", "error", err)
 				}

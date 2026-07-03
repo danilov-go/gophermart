@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+	"github.com/danilov-go/gophermart/internal/repository/memory"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,7 +61,7 @@ func TestRegisterUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			r := chi.NewRouter()
 			logger := zaptest.NewLogger(t)
 			h := NewHandlers(storage, logger.Sugar())
@@ -75,7 +75,7 @@ func TestRegisterUser(t *testing.T) {
 			r.ServeHTTP(rec, req)
 			assert.Equal(t, tt.want.code, rec.Code)
 			if rec.Code == http.StatusOK {
-				user, err := storage.GetUser(tt.user.Login)
+				user, err := storage.GetUser(t.Context(), tt.user.Login)
 				require.NoError(t, err)
 				password := hash(tt.user.Password, key)
 				assert.Equal(t, password, user.PasswordHash)
@@ -154,9 +154,9 @@ func TestLoginUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			password := hash(expPassword, key)
-			_, err := storage.SaveUser(expLogin, password)
+			_, err := storage.SaveUser(t.Context(), expLogin, password)
 			require.NoError(t, err)
 			r := chi.NewRouter()
 			logger := zaptest.NewLogger(t)
@@ -171,7 +171,7 @@ func TestLoginUser(t *testing.T) {
 			r.ServeHTTP(rec, req)
 			assert.Equal(t, tt.want.code, rec.Code)
 			if rec.Code == http.StatusOK {
-				user, err := storage.GetUser(tt.user.Login)
+				user, err := storage.GetUser(t.Context(), tt.user.Login)
 				require.NoError(t, err)
 				password := hash(tt.user.Password, key)
 				assert.Equal(t, password, user.PasswordHash)

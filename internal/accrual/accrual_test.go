@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	mem "github.com/danilov-go/gophermart/internal/repository/mem_storage"
+	"github.com/danilov-go/gophermart/internal/repository/memory"
 
 	"github.com/danilov-go/gophermart/internal/accrual"
 	"github.com/danilov-go/gophermart/internal/models"
@@ -72,13 +72,13 @@ func TestWorker_TableDriven(t *testing.T) {
 				w.WriteHeader(tt.code)
 			}))
 			defer server.Close()
-			storage := mem.InitMemStorage()
+			storage := memory.InitMemStorage()
 			logger := zaptest.NewLogger(t)
 			order := expOrder
 			if tt.setup {
 				order = tt.accrual.Order
 			}
-			err := storage.SaveOrders(order, models.Order{
+			err := storage.SaveOrders(t.Context(), order, models.Order{
 				Login:      expLogin,
 				Status:     models.NEW,
 				UploadedAt: time.Now(),
@@ -89,7 +89,7 @@ func TestWorker_TableDriven(t *testing.T) {
 			defer cancel()
 			go agent.Worker(ctx)
 			<-ctx.Done()
-			storageOrders, err := storage.GetOrders(expLogin)
+			storageOrders, err := storage.GetOrders(t.Context(), expLogin)
 			require.NoError(t, err)
 			require.NotEmpty(t, storageOrders)
 			expectideStatus := expStatus
