@@ -20,7 +20,7 @@ func (d *storageDB) SaveUser(ctx context.Context, login, passwordHash string) (i
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
-			return 0, errors.New("логин занят")
+			return 0, models.ErrUserAlreadyExists
 		}
 		return 0, err
 	}
@@ -35,7 +35,7 @@ func (d *storageDB) GetUser(ctx context.Context, login string) (models.User, err
 	err := d.db.QueryRowContext(ctx, query, login).Scan(&user.ID, &user.Login, &user.PasswordHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.User{}, errors.New("пользователь не найден")
+			return models.User{}, models.ErrUserNotFound
 		}
 		return models.User{}, err
 	}

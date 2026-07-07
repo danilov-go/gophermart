@@ -6,9 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/danilov-go/gophermart/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -17,11 +19,12 @@ type loginPassword struct {
 	Password string `json:"password"`
 }
 
-func buildJWTString(login, key string) (string, error) {
+func buildJWTString(id int, login, key string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
+		ID:    id,
 		Login: login,
 	})
 	tokenString, err := token.SignedString([]byte(key))
@@ -67,9 +70,9 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 			return
 		}
 		hashStringPassword := hash(user.Password, key)
-		_, err = h.storage.SaveUser(ctx, user.Login, hashStringPassword)
+		id, err := h.storage.SaveUser(ctx, user.Login, hashStringPassword)
 		if err != nil {
-			if err.Error() == "логин занят" {
+			if errors.Is(err, models.ErrUserAlreadyExists) {
 				h.logger.Errorw("пользователь с таким именем уже существует", "error", err)
 				http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 				return
@@ -78,7 +81,7 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		signedToken, err := buildJWTString(user.Login, key)
+		signedToken, err := buildJWTString(id, user.Login, key)
 		if err != nil {
 			h.logger.Errorw("ошибка аутентификации", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -115,7 +118,7 @@ func (h *BalanceHandler) LoginUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized) // 401
 			return
 		}
-		signedToken, err := buildJWTString(user.Login, key)
+		signedToken, err := buildJWTString(store.ID, user.Login, key)
 		if err != nil {
 			h.logger.Errorw("ошибка аутентификации", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

@@ -18,13 +18,15 @@ import (
 )
 
 const (
-	expLogin   = "login1"
+	expId      = 1
 	expOrder   = "12345678903"
 	expStatus  = "NEW"
 	expAccrual = 0.0
 )
 
 func TestWorker_TableDriven(t *testing.T) {
+	expAccrual := 500.5
+	zeroAccrual := 0.0
 	tests := []struct {
 		name    string
 		code    int
@@ -37,7 +39,7 @@ func TestWorker_TableDriven(t *testing.T) {
 			accrual: models.Accrual{
 				Order:   expOrder,
 				Status:  "PROCESSED",
-				Accrual: 500.5,
+				Accrual: &expAccrual,
 			},
 			setup: true,
 		},
@@ -47,7 +49,7 @@ func TestWorker_TableDriven(t *testing.T) {
 			accrual: models.Accrual{
 				Order:   "2377225624",
 				Status:  "INVALID",
-				Accrual: 0,
+				Accrual: &zeroAccrual,
 			},
 			setup: true,
 		},
@@ -79,7 +81,7 @@ func TestWorker_TableDriven(t *testing.T) {
 				order = tt.accrual.Order
 			}
 			err := storage.SaveOrders(t.Context(), order, models.Order{
-				Login:      expLogin,
+				UserID:     1,
 				Status:     models.NEW,
 				UploadedAt: time.Now(),
 			})
@@ -89,17 +91,21 @@ func TestWorker_TableDriven(t *testing.T) {
 			defer cancel()
 			go agent.Worker(ctx)
 			<-ctx.Done()
-			storageOrders, err := storage.GetOrders(t.Context(), expLogin)
+			storageOrders, err := storage.GetOrders(t.Context(), expId)
 			require.NoError(t, err)
 			require.NotEmpty(t, storageOrders)
 			expectideStatus := expStatus
 			expectideAccrual := expAccrual
 			if tt.setup {
 				expectideStatus = tt.accrual.Status
-				expectideAccrual = tt.accrual.Accrual
+				expectideAccrual = *tt.accrual.Accrual
+			}
+			if storageOrders[0].Accrual != nil {
+				actualAccrual := *storageOrders[0].Accrual
+				assert.Equal(t, expectideAccrual, actualAccrual)
 			}
 			assert.Equal(t, expectideStatus, storageOrders[0].Status)
-			assert.Equal(t, expectideAccrual, storageOrders[0].Accrual)
+
 		})
 	}
 }

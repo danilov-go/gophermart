@@ -18,27 +18,27 @@ import (
 )
 
 const expNumberW = "2377225624"
-const expAcrual = 500.5
 const expWithdraw = 200.25
-const expBalance = expAcrual - expWithdraw
 
 func TestGetBalanceHandler(t *testing.T) {
+	expAcrual := 500.5
+	expBalance := expAcrual - expWithdraw
 
 	tests := []struct {
 		name  string
-		login string
+		id    int
 		code  int
 		setup bool
 	}{
 		{
 			name:  "у пользователя нет заказов",
-			login: expLogin,
+			id:    1,
 			code:  http.StatusOK,
 			setup: false,
 		},
 		{
 			name:  "положительный тест",
-			login: expLogin,
+			id:    1,
 			code:  http.StatusOK,
 			setup: true,
 		},
@@ -48,13 +48,13 @@ func TestGetBalanceHandler(t *testing.T) {
 			storage := memory.InitMemStorage()
 			if tt.setup {
 				err := storage.SaveOrders(t.Context(), expNumber, models.Order{
-					Login:      expLogin,
+					UserID:     1,
 					Status:     models.PROCESSED,
-					Accrual:    expAcrual,
+					Accrual:    &expAcrual,
 					UploadedAt: time.Now(),
 				})
 				require.NoError(t, err)
-				err = storage.Withdraw(t.Context(), expLogin, expNumberW, expWithdraw)
+				err = storage.Withdraw(t.Context(), tt.id, expNumberW, expWithdraw)
 				require.NoError(t, err)
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/balance", nil)
@@ -62,7 +62,11 @@ func TestGetBalanceHandler(t *testing.T) {
 			logger := zaptest.NewLogger(t)
 			h := handler.NewHandlers(storage, logger.Sugar())
 			handlerFunc := h.GetBalanceHandler()
-			handlerFunc(rec, req, tt.login)
+			user := handler.AuthUser{
+				ID:    tt.id,
+				Login: expLogin,
+			}
+			handlerFunc(rec, req, user)
 			assert.Equal(t, tt.code, rec.Code)
 			assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
 			var balance models.Balance
@@ -80,22 +84,22 @@ func TestGetBalanceHandler(t *testing.T) {
 }
 
 func TestGetWithdrawalsBalanceHandler(t *testing.T) {
-
+	expAcrual := 500.5
 	tests := []struct {
 		name           string
-		login          string
+		id             int
 		expectedStatus int
 		setup          bool
 	}{
 		{
 			name:           "У пользователя нет истории списаний",
-			login:          expLogin,
+			id:             1,
 			expectedStatus: http.StatusNoContent,
 			setup:          false,
 		},
 		{
 			name:           "положительный тест",
-			login:          expLogin,
+			id:             1,
 			expectedStatus: http.StatusOK,
 			setup:          true,
 		},
@@ -104,7 +108,14 @@ func TestGetWithdrawalsBalanceHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := memory.InitMemStorage()
 			if tt.setup {
-				err := storage.Withdraw(t.Context(), expLogin, expNumberW, expWithdraw)
+				err := storage.SaveOrders(t.Context(), expNumber, models.Order{
+					UserID:     tt.id,
+					Status:     models.PROCESSED,
+					Accrual:    &expAcrual,
+					UploadedAt: time.Now(),
+				})
+				require.NoError(t, err)
+				err = storage.Withdraw(t.Context(), tt.id, expNumberW, expWithdraw)
 				require.NoError(t, err)
 			}
 			req := httptest.NewRequest(http.MethodGet, "/api/user/withdrawals", nil)
@@ -112,7 +123,11 @@ func TestGetWithdrawalsBalanceHandler(t *testing.T) {
 			logger := zaptest.NewLogger(t)
 			h := handler.NewHandlers(storage, logger.Sugar())
 			handlerFunc := h.GetWithdrawalsBalanceHandler()
-			handlerFunc(rec, req, tt.login)
+			user := handler.AuthUser{
+				ID:    tt.id,
+				Login: expLogin,
+			}
+			handlerFunc(rec, req, user)
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			if tt.setup {
 				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
@@ -130,20 +145,21 @@ func TestGetWithdrawalsBalanceHandler(t *testing.T) {
 }
 
 func TestWithdrawtBalanceHandler(t *testing.T) {
+	expAcrual := 500.5
 	type orderBalance struct {
 		Order string  `json:"order"`
 		Sum   float64 `json:"sum"`
 	}
 	tests := []struct {
 		name           string
-		login          string
+		id             int
 		body           orderBalance
 		setup          bool
 		expectedStatus int
 	}{
 		{
-			name:  "положительный тест",
-			login: expLogin,
+			name: "положительный тест",
+			id:   1,
 			body: orderBalance{
 				Order: expNumber,
 				Sum:   expWithdraw,
@@ -152,8 +168,8 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name:  "недостаточно средств на балансе",
-			login: expLogin,
+			name: "недостаточно средств на балансе",
+			id:   1,
 			body: orderBalance{
 				Order: expNumber,
 				Sum:   1000.0,
@@ -162,8 +178,8 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			expectedStatus: http.StatusPaymentRequired,
 		},
 		{
-			name:  "неверный номер заказа по алгоритму Луна",
-			login: expLogin,
+			name: "неверный номер заказа по алгоритму Луна",
+			id:   1,
 			body: orderBalance{
 				Order: "12345678904",
 				Sum:   expAcrual,
@@ -172,8 +188,8 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			expectedStatus: http.StatusUnprocessableEntity,
 		},
 		{
-			name:  "пустой номер заказа",
-			login: expLogin,
+			name: "пустой номер заказа",
+			id:   1,
 			body: orderBalance{
 				Order: "",
 				Sum:   expAcrual,
@@ -187,9 +203,9 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			storage := memory.InitMemStorage()
 			if tt.setup {
 				err := storage.SaveOrders(t.Context(), expNumberW, models.Order{
-					Login:      expLogin,
+					UserID:     tt.id,
 					Status:     models.PROCESSED,
-					Accrual:    expAcrual,
+					Accrual:    &expAcrual,
 					UploadedAt: time.Now(),
 				})
 				require.NoError(t, err)
@@ -201,15 +217,19 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			logger := zaptest.NewLogger(t)
 			h := handler.NewHandlers(storage, logger.Sugar())
 			handlerFunc := h.WithdrawtBalanceHandler()
-			handlerFunc(rec, req, tt.login)
+			user := handler.AuthUser{
+				ID:    tt.id,
+				Login: expLogin,
+			}
+			handlerFunc(rec, req, user)
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			if rec.Code == http.StatusOK {
-				withdraw, err := storage.GetWithdraw(t.Context(), tt.login)
+				withdraw, err := storage.GetWithdraw(t.Context(), tt.id)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, withdraw)
 				assert.Equal(t, tt.body.Order, withdraw[0].Order)
 				assert.Equal(t, tt.body.Sum, withdraw[0].Sum)
-				balance, err := storage.GetBalance(t.Context(), tt.login)
+				balance, err := storage.GetBalance(t.Context(), tt.id)
 				assert.NoError(t, err)
 				expectedCurrent := expAcrual - tt.body.Sum
 				assert.Equal(t, expectedCurrent, balance.Current)

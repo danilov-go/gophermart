@@ -11,15 +11,22 @@ import (
 )
 
 type Claims struct {
+	ID    int    `json:"id"`
 	Login string `json:"login"`
 	jwt.RegisteredClaims
 }
 
+type AuthUser struct {
+	ID    int
+	Login string
+}
+
 const tokenExp = time.Hour * 24
 
-type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, login string)
+type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, user AuthUser)
 
-func GetUserLogin(tokenString, key string) (string, error) {
+func GetUserLogin(tokenString, key string) (AuthUser, error) {
+	var user AuthUser
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -28,12 +35,16 @@ func GetUserLogin(tokenString, key string) (string, error) {
 		return []byte(key), nil
 	})
 	if err != nil {
-		return "", err
+		return AuthUser{}, err
 	}
 	if !token.Valid {
-		return "", errors.New("token is not valid")
+		return AuthUser{}, errors.New("token is not valid")
 	}
-	return claims.Login, nil
+	user = AuthUser{
+		ID:    claims.ID,
+		Login: claims.Login,
+	}
+	return user, nil
 }
 
 func AuthMiddleware(key string, h LoginHandlerFunc) http.HandlerFunc {
@@ -44,11 +55,11 @@ func AuthMiddleware(key string, h LoginHandlerFunc) http.HandlerFunc {
 			return
 		}
 		tokenString := strings.TrimPrefix(token, "Bearer ")
-		login, err := GetUserLogin(tokenString, key)
+		user, err := GetUserLogin(tokenString, key)
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
-		h(w, r, login)
+		h(w, r, user)
 	}
 }

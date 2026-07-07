@@ -36,7 +36,7 @@ func validLuna(number string) error {
 }
 
 func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string) {
+	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") {
 			h.logger.Errorw("не соответствие content-type", "content-type", r.Header.Get("Content-Type"))
@@ -63,7 +63,7 @@ func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
 			return
 		}
 		orderSave := models.Order{
-			Login:      login,
+			UserID:     user.ID,
 			Status:     models.NEW,
 			UploadedAt: time.Now(),
 		}
@@ -87,9 +87,9 @@ func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
 }
 
 func (h *BalanceHandler) GetOrderHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string) {
+	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
-		orders, err := h.storage.GetOrders(ctx, login)
+		orders, err := h.storage.GetOrders(ctx, user.ID)
 		if err != nil {
 			if errors.Is(err, models.ErrNoOrdersFound) {
 				w.WriteHeader(http.StatusNoContent)

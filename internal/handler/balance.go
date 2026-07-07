@@ -15,10 +15,14 @@ type orderBalance struct {
 }
 
 func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string) {
+	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
-		balance, err := h.storage.GetBalance(ctx, login)
+		balance, err := h.storage.GetBalance(ctx, user.ID)
 		if err != nil {
+			if errors.Is(err, models.ErrUserNotFound) {
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				return
+			}
 			h.logger.Errorw("ошибка получения баланса", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -41,7 +45,7 @@ func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
 }
 
 func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string) {
+	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		var buf bytes.Buffer
 		var order orderBalance
@@ -68,19 +72,13 @@ func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
-		balance, err := h.storage.GetBalance(ctx, login)
+		err = h.storage.Withdraw(ctx, user.ID, order.Order, order.Sum)
 		if err != nil {
-			h.logger.Errorw("ошибка получения баланса", "error", err)
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			return
-		}
-		if balance.Current < order.Sum {
-			h.logger.Errorw("ошибка списания баланса", "error", errors.New("недостаточно балов для списания"))
-			http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
-			return
-		}
-		err = h.storage.Withdraw(ctx, login, order.Order, order.Sum)
-		if err != nil {
+			if errors.Is(err, models.ErrInsufficientFunds) {
+				h.logger.Errorw("ошибка списания баланса", "error", err)
+				http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
+				return
+			}
 			h.logger.Errorw("ошибка списания", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
@@ -90,9 +88,9 @@ func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 }
 
 func (h *BalanceHandler) GetWithdrawalsBalanceHandler() LoginHandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, login string) {
+	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
-		withdraws, err := h.storage.GetWithdraw(ctx, login)
+		withdraws, err := h.storage.GetWithdraw(ctx, user.ID)
 		if err != nil {
 			if errors.Is(err, models.ErrNoWithdrawalsFound) {
 				w.WriteHeader(http.StatusNoContent)

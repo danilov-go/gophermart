@@ -17,17 +17,19 @@ type User struct {
 	Login        string
 	PasswordHash string
 }
+
 type Order struct {
-	Login      string    `json:"login"`
+	UserID     int       `json:"-"`
+	Number     string    `json:"number"`
 	Status     string    `json:"status"`
-	Accrual    float64   `json:"accrual,omitempty"`
+	Accrual    *float64  `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 type Orders struct {
 	Number     string    `json:"number"`
 	Status     string    `json:"status"`
-	Accrual    float64   `json:"accrual,omitempty"`
+	Accrual    *float64  `json:"accrual,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
 
@@ -42,9 +44,9 @@ type Withdraw struct {
 	Processed_at time.Time `json:"processed_at"`
 }
 type Accrual struct {
-	Order   string  `json:"order"`
-	Status  string  `json:"status"`
-	Accrual float64 `json:"accrual,omitempty"`
+	Order   string   `json:"order"`
+	Status  string   `json:"status"`
+	Accrual *float64 `json:"accrual,omitempty"`
 }
 
 var (
@@ -52,4 +54,7 @@ var (
 	ErrOrderAlreadyUploadedByOtherUser = errors.New("номер заказа уже был загружен другим пользователем")
 	ErrNoOrdersFound                   = errors.New("у пользователя нет заказов")
 	ErrNoWithdrawalsFound              = errors.New("нет ни одного списания")
+	ErrUserAlreadyExists               = errors.New("логин занят")
+	ErrUserNotFound                    = errors.New("пользователь не найден")
+	ErrInsufficientFunds               = errors.New("недостаточно средств на счете")
 )

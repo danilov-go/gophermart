@@ -79,14 +79,16 @@ func TestRegisterUser(t *testing.T) {
 				require.NoError(t, err)
 				password := hash(tt.user.Password, key)
 				assert.Equal(t, password, user.PasswordHash)
+				assert.Equal(t, 1, user.ID)
 				assert.Equal(t, tt.user.Login, user.Login)
 				authHeader := rec.Header().Get("Authorization")
 				require.NotEmpty(t, authHeader)
 				assert.Contains(t, authHeader, "Bearer ")
 				tokenString := bytes.TrimPrefix([]byte(authHeader), []byte("Bearer "))
-				loginFromToken, err := GetUserLogin(string(tokenString), key)
+				expUser, err := GetUserLogin(string(tokenString), key)
 				require.NoError(t, err)
-				assert.Equal(t, tt.user.Login, loginFromToken)
+				assert.Equal(t, tt.user.Login, expUser.Login)
+				assert.Equal(t, 1, expUser.ID)
 			}
 		})
 	}
@@ -180,9 +182,10 @@ func TestLoginUser(t *testing.T) {
 				require.NotEmpty(t, authHeader)
 				assert.Contains(t, authHeader, "Bearer ")
 				tokenString := bytes.TrimPrefix([]byte(authHeader), []byte("Bearer "))
-				loginFromToken, err := GetUserLogin(string(tokenString), key)
+				expUser, err := GetUserLogin(string(tokenString), key)
 				require.NoError(t, err)
-				assert.Equal(t, tt.user.Login, loginFromToken)
+				assert.Equal(t, tt.user.Login, expUser.Login)
+				assert.Equal(t, 1, expUser.ID)
 			}
 		})
 	}

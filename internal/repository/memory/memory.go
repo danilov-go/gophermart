@@ -9,16 +9,18 @@ import (
 type MemStorage struct {
 	mu          sync.RWMutex
 	nextID      int
-	users       map[string]models.User
+	userId      map[int]models.User
+	userLogin   map[string]int
 	orders      map[string]models.Order
-	withdrawals map[string][]models.Withdraw
+	withdrawals map[int][]models.Withdraw
 }
 
 func InitMemStorage() *MemStorage {
 	return &MemStorage{
 		nextID:      1,
-		users:       make(map[string]models.User),
+		userId:      make(map[int]models.User),
+		userLogin:   make(map[string]int),
 		orders:      make(map[string]models.Order),
-		withdrawals: make(map[string][]models.Withdraw),
+		withdrawals: make(map[int][]models.Withdraw),
 	}
 }

@@ -10,10 +10,10 @@ type Storage interface {
 	SaveUser(ctx context.Context, login, passwordHash string) (int, error)
 	GetUser(ctx context.Context, login string) (models.User, error)
 	SaveOrders(ctx context.Context, number string, orders models.Order) error
-	GetOrders(ctx context.Context, login string) ([]models.Orders, error)
-	GetBalance(ctx context.Context, login string) (models.Balance, error)
-	Withdraw(ctx context.Context, login string, order string, bal float64) error
-	GetWithdraw(ctx context.Context, login string) ([]models.Withdraw, error)
+	GetOrders(ctx context.Context, id int) ([]models.Orders, error)
+	GetBalance(ctx context.Context, id int) (models.Balance, error)
+	Withdraw(ctx context.Context, id int, order string, bal float64) error
+	GetWithdraw(ctx context.Context, id int) ([]models.Withdraw, error)
 	GetUnOrders(ctx context.Context) ([]models.Orders, error)
 	UpdateStatus(ctx context.Context, accrual models.Accrual) error
 }

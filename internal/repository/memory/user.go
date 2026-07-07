@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 
 	"github.com/danilov-go/gophermart/internal/models"
 )
@@ -10,26 +9,31 @@ import (
 func (m *MemStorage) SaveUser(ctx context.Context, login, passwordHash string) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if _, ok := m.users[login]; ok {
-		return 0, errors.New("логин занят")
+	if _, ok := m.userLogin[login]; ok {
+		return 0, models.ErrUserAlreadyExists
 	}
 	userID := m.nextID
+	m.nextID++
 	newUser := models.User{
 		ID:           userID,
 		Login:        login,
 		PasswordHash: passwordHash,
 	}
-	m.users[login] = newUser
-	m.nextID++
+	m.userId[userID] = newUser
+	m.userLogin[login] = userID
 	return userID, nil
 }
 
 func (m *MemStorage) GetUser(ctx context.Context, login string) (models.User, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	user, ok := m.users[login]
+	userID, ok := m.userLogin[login]
 	if !ok {
-		return models.User{}, errors.New("пользователь не найден")
+		return models.User{}, models.ErrUserNotFound
+	}
+	user, ok := m.userId[userID]
+	if !ok {
+		return models.User{}, models.ErrUserNotFound
 	}
 	return user, nil
 }

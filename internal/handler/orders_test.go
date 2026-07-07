@@ -24,71 +24,75 @@ func TestSaveOrderHandler(t *testing.T) {
 	tests := []struct {
 		name        string
 		contentType string
-		body        string
-		login       string
+		number      string
+		id          int
 		code        int
 	}{
 		{
 			name:        "положительный тест",
 			contentType: "text/plain",
-			body:        expNumber,
-			login:       expLogin,
+			number:      expNumber,
+			id:          1,
 			code:        http.StatusAccepted,
 		},
 		{
 			name:        "неверный Content-Type",
 			contentType: "application/json",
-			body:        expNumber,
-			login:       expLogin,
+			number:      expNumber,
+			id:          1,
 			code:        http.StatusBadRequest,
 		},
 		{
 			name:        "пустой номер заказа",
 			contentType: "text/plain",
-			body:        "",
-			login:       expLogin,
+			number:      "",
+			id:          1,
 			code:        http.StatusBadRequest,
 		},
 		{
 			name:        "ошибка алгоритма Луна",
 			contentType: "text/plain",
-			body:        "12345678904",
-			login:       expLogin,
+			number:      "12345678904",
+			id:          1,
 			code:        http.StatusUnprocessableEntity,
 		},
 		{
 			name:        "заказ загружен этим же пользователем",
 			contentType: "text/plain",
-			body:        expNumber,
-			login:       expLogin,
+			number:      expNumber,
+			id:          1,
 			code:        http.StatusOK,
 		},
 		{
 			name:        "заказ загружен другим пользователем",
 			contentType: "text/plain",
-			body:        expNumber,
-			login:       "login2",
+			number:      expNumber,
+			id:          2,
 			code:        http.StatusConflict,
 		},
 	}
 	storage := memory.InitMemStorage()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/api/user/orders", strings.NewReader(tt.body))
+			req := httptest.NewRequest(http.MethodPost, "/api/user/orders", strings.NewReader(tt.number))
 			req.Header.Set("Content-Type", tt.contentType)
 			rec := httptest.NewRecorder()
 			logger := zaptest.NewLogger(t)
 			h := handler.NewHandlers(storage, logger.Sugar())
 			handlerFunc := h.SaveOrderHandler()
-			handlerFunc(rec, req, tt.login)
+			user := handler.AuthUser{
+				ID:    tt.id,
+				Login: expLogin,
+			}
+			handlerFunc(rec, req, user)
 			assert.Equal(t, rec.Code, tt.code)
 			if rec.Code == http.StatusOK || rec.Code == http.StatusAccepted {
-				orders, err := storage.GetOrders(t.Context(), tt.login)
+				orders, err := storage.GetOrders(t.Context(), tt.id)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, orders)
 				var found bool
 				for _, order := range orders {
-					if order.Number == tt.body {
+					if order.Number == tt.number {
 						found = true
 						break
 					}
@@ -103,19 +107,19 @@ func TestSaveOrderHandler(t *testing.T) {
 func TestGetOrderHandler(t *testing.T) {
 	tests := []struct {
 		name      string
-		login     string
+		id        int
 		code      int
 		checkJSON bool
 	}{
 		{
 			name:      "у пользователя нет заказов",
-			login:     expLogin,
+			id:        1,
 			code:      http.StatusNoContent,
 			checkJSON: false,
 		},
 		{
 			name:      "положительный тест",
-			login:     expLogin,
+			id:        1,
 			code:      http.StatusOK,
 			checkJSON: true,
 		},
@@ -125,7 +129,7 @@ func TestGetOrderHandler(t *testing.T) {
 			storage := memory.InitMemStorage()
 			if tt.checkJSON {
 				err := storage.SaveOrders(t.Context(), expNumber, models.Order{
-					Login:      expLogin,
+					UserID:     tt.id,
 					Status:     models.NEW,
 					UploadedAt: time.Now(),
 				})
@@ -136,7 +140,11 @@ func TestGetOrderHandler(t *testing.T) {
 			logger := zaptest.NewLogger(t)
 			h := handler.NewHandlers(storage, logger.Sugar())
 			handlerFunc := h.GetOrderHandler()
-			handlerFunc(rec, req, tt.login)
+			user := handler.AuthUser{
+				ID:    tt.id,
+				Login: expLogin,
+			}
+			handlerFunc(rec, req, user)
 			assert.Equal(t, tt.code, rec.Code)
 			if tt.checkJSON {
 				assert.Equal(t, "application/json", rec.Header().Get("Content-Type"))
