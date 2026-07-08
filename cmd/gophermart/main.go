@@ -37,7 +37,7 @@ func main() {
 		logger.Log.Sugar().Infow("ошибка инициализации базы данных", "error", err)
 		storage = memory.InitMemStorage()
 	} else {
-		storage = db
+		storage = handler.NewErrorMiddleware(db)
 	}
 	agent := accrual.New(configs.Interval, configs.AccrualAddres, logger.Log.Sugar(), storage)
 	go agent.Worker(ctx)
