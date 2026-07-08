@@ -31,13 +31,18 @@ func main() {
 	configs.Get()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	db, err := db.InitDB(configs.DatabaseUri)
 	var storage handler.Storage
+	db, err := db.InitDB(configs.DatabaseUri)
 	if err != nil {
 		logger.Log.Sugar().Infow("ошибка инициализации базы данных", "error", err)
 		storage = memory.InitMemStorage()
 	} else {
-		storage = handler.NewErrorMiddleware(db)
+		if err = db.Ping(ctx); err != nil {
+			logger.Log.Sugar().Infow("база данных недоступна", "error", err)
+			storage = memory.InitMemStorage()
+		} else {
+			storage = handler.NewErrorMiddleware(db)
+		}
 	}
 	agent := accrual.New(configs.Interval, configs.AccrualAddres, logger.Log.Sugar(), storage)
 	go agent.Worker(ctx)

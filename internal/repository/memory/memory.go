@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"sync"
 
 	"github.com/danilov-go/gophermart/internal/models"
@@ -23,4 +24,11 @@ func InitMemStorage() *MemStorage {
 		orders:      make(map[string]models.Order),
 		withdrawals: make(map[int][]models.Withdraw),
 	}
+}
+
+func (m *MemStorage) Ping(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return nil
 }

@@ -28,6 +28,7 @@ func NewHandlers(storage Storage, l log) *BalanceHandler {
 }
 
 type Storage interface {
+	Ping(ctx context.Context) error
 	SaveUser(ctx context.Context, login, passwordHash string) (int, error)
 	GetUser(ctx context.Context, login string) (models.User, error)
 	SaveOrders(ctx context.Context, number string, orders models.Order) error
@@ -198,4 +199,8 @@ func (rm *ErrorStorageMiddleware) UpdateStatus(ctx context.Context, accrual mode
 		return rm.next.UpdateStatus(ctx, accrual)
 	}
 	return rm.replay(ctx, operation)
+}
+
+func (rm *ErrorStorageMiddleware) Ping(ctx context.Context) error {
+	return rm.next.Ping(ctx)
 }

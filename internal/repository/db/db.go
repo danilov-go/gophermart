@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 
@@ -40,4 +41,12 @@ func InitDB(ps string) (*storageDB, error) {
 	return &storageDB{
 		db: db,
 	}, nil
+}
+
+func (d *storageDB) Ping(ctx context.Context) error {
+	err := d.db.PingContext(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
