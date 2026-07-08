@@ -44,6 +44,7 @@ func main() {
 	h := handler.NewHandlers(storage, logger.Log.Sugar())
 	r := chi.NewRouter()
 	r.Use(middleware.StripSlashes)
+	r.Use(handler.GzipMiddleware)
 	r.Route("/api/user", func(r chi.Router) {
 		r.Post("/register", h.RegisterUser(configs.Key))
 		r.Post("/login", h.LoginUser(configs.Key))
