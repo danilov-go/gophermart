@@ -64,7 +64,7 @@ func (m *MemStorage) GetWithdraw(ctx context.Context, id int) ([]models.Withdraw
 	defer m.mu.RUnlock()
 	withdraw, ok := m.withdrawals[id]
 	if !ok {
-		return []models.Withdraw{}, models.ErrNoWithdrawalsFound
+		return nil, models.ErrNoWithdrawalsFound
 	}
 	slices.SortFunc(withdraw, func(i, j models.Withdraw) int {
 		return i.Processed_at.Compare(j.Processed_at)
