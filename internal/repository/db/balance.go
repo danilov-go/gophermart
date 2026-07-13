@@ -62,7 +62,7 @@ func (d *storageDB) GetWithdraw(ctx context.Context, id int) ([]models.Withdraw,
 	withdrawals := make([]models.Withdraw, 0)
 	for rows.Next() {
 		var withdrawal models.Withdraw
-		err := rows.Scan(&withdrawal.Order, &withdrawal.Sum, &withdrawal.Processed_at)
+		err = rows.Scan(&withdrawal.Order, &withdrawal.Sum, &withdrawal.Processed_at)
 		if err != nil {
 			return nil, err
 		}

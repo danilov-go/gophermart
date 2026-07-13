@@ -23,7 +23,6 @@ const expWithdraw = 200.25
 func TestGetBalanceHandler(t *testing.T) {
 	expAcrual := 500.5
 	expBalance := expAcrual - expWithdraw
-
 	tests := []struct {
 		name  string
 		id    int

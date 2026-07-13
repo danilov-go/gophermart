@@ -13,7 +13,7 @@ const expNumber = "12345678903"
 
 func TestMemStorage_SaveOrders(t *testing.T) {
 	expAccrual := 200.5
-	now := time.Now()
+	now := time.Now().Truncate(time.Second)
 	tests := []struct {
 		name     string
 		number   string
@@ -68,7 +68,7 @@ func TestMemStorage_SaveOrders(t *testing.T) {
 
 func TestMemStorage_GetOrders(t *testing.T) {
 	expAccrual := 200.5
-	now := time.Now()
+	now := time.Now().Truncate(time.Second)
 	tests := []struct {
 		name       string
 		id         int
@@ -120,7 +120,7 @@ func TestMemStorage_GetOrders(t *testing.T) {
 
 func TestMemStorage_GetUnOrders(t *testing.T) {
 	expAccrual := 200.5
-	now := time.Now()
+	now := time.Now().Truncate(time.Second)
 	tests := []struct {
 		name       string
 		wantOrders []models.Orders
@@ -175,10 +175,10 @@ func TestMemStorage_GetUnOrders(t *testing.T) {
 			order, err := storage.GetUnOrders(t.Context())
 			if tt.wantErr {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantOrders, order)
+				assert.Empty(t, order)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.wantOrders, order)
+				assert.ElementsMatch(t, tt.wantOrders, order)
 			}
 		})
 	}

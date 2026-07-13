@@ -47,7 +47,7 @@ func (d *storageDB) GetOrders(ctx context.Context, id int) ([]models.Orders, err
 	defer rows.Close()
 	for rows.Next() {
 		var order models.Orders
-		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
+		err = rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +74,7 @@ func (d *storageDB) GetUnOrders(ctx context.Context) ([]models.Orders, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var order models.Orders
-		err := rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
+		err = rows.Scan(&order.Number, &order.Status, &order.Accrual, &order.UploadedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +99,7 @@ func (d *storageDB) UpdateStatus(ctx context.Context, accrual models.Accrual) er
 	err = tx.QueryRowContext(ctx, queryOrder, accrual.Status, accrual.Accrual, accrual.Order).Scan(&userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil
+			return models.ErrNoOrdersFound
 		}
 		return err
 	}

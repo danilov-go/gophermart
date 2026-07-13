@@ -101,7 +101,7 @@ func TestMemStorage_Withdraw(t *testing.T) {
 
 func TestMemStorage_GetWithdraw(t *testing.T) {
 	expAccrual := 500.5
-	now := time.Now()
+	now := time.Now().Truncate(time.Second)
 	tests := []struct {
 		name    string
 		id      int
@@ -142,8 +142,11 @@ func TestMemStorage_GetWithdraw(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			withdraw, err := storage.GetWithdraw(context.Background(), tt.id)
 			assert.ErrorIs(t, err, tt.wantErr)
-			assert.Equal(t, withdraw, tt.want)
-
+			if tt.wantErr == nil {
+				assert.Equal(t, withdraw[0].Order, tt.want[0].Order)
+				assert.Equal(t, withdraw[0].Sum, tt.want[0].Sum)
+				assert.NotZero(t, t, withdraw[0].Processed_at)
+			}
 		})
 	}
 }

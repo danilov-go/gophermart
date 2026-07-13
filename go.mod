@@ -3,6 +3,7 @@ module github.com/danilov-go/gophermart
 go 1.25.0
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/go-resty/resty/v2 v2.17.2

@@ -15,6 +15,12 @@ type storageDB struct {
 	db *sql.DB
 }
 
+func NewStorageDB(sql *sql.DB) storageDB {
+	return storageDB{
+		db: sql,
+	}
+}
+
 func InitDB(ps string) (*storageDB, error) {
 	db, err := sql.Open("pgx", ps)
 	if err != nil {
