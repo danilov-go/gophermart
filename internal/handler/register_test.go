@@ -1,4 +1,4 @@
-package handler
+package handler_test
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/danilov-go/gophermart/internal/handler"
 	"github.com/danilov-go/gophermart/internal/repository/memory"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,11 @@ import (
 
 type want struct {
 	code int
+}
+
+type loginPassword struct {
+	Login    string
+	Password string
 }
 
 var key = "secret"
@@ -64,7 +70,7 @@ func TestRegisterUser(t *testing.T) {
 			storage := memory.InitMemStorage()
 			r := chi.NewRouter()
 			logger := zaptest.NewLogger(t)
-			h := NewHandlers(storage, logger.Sugar())
+			h := handler.NewHandlers(storage, logger.Sugar())
 			r.Post("/register", h.RegisterUser(key))
 			body, err := json.Marshal(tt.user)
 			require.NoError(t, err)
@@ -77,7 +83,7 @@ func TestRegisterUser(t *testing.T) {
 			if rec.Code == http.StatusOK {
 				user, err := storage.GetUser(t.Context(), tt.user.Login)
 				require.NoError(t, err)
-				password := hash(tt.user.Password, key)
+				password := handler.Hash(tt.user.Password, key)
 				assert.Equal(t, password, user.PasswordHash)
 				assert.Equal(t, 1, user.ID)
 				assert.Equal(t, tt.user.Login, user.Login)
@@ -85,7 +91,7 @@ func TestRegisterUser(t *testing.T) {
 				require.NotEmpty(t, authHeader)
 				assert.Contains(t, authHeader, "Bearer ")
 				tokenString := bytes.TrimPrefix([]byte(authHeader), []byte("Bearer "))
-				expUser, err := GetUserLogin(string(tokenString), key)
+				expUser, err := handler.GetUserLogin(string(tokenString), key)
 				require.NoError(t, err)
 				assert.Equal(t, tt.user.Login, expUser.Login)
 				assert.Equal(t, 1, expUser.ID)
@@ -157,12 +163,12 @@ func TestLoginUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage := memory.InitMemStorage()
-			password := hash(expPassword, key)
+			password := handler.Hash(expPassword, key)
 			_, err := storage.SaveUser(t.Context(), expLogin, password)
 			require.NoError(t, err)
 			r := chi.NewRouter()
 			logger := zaptest.NewLogger(t)
-			h := NewHandlers(storage, logger.Sugar())
+			h := handler.NewHandlers(storage, logger.Sugar())
 			r.Post("/login", h.LoginUser(key))
 			body, err := json.Marshal(tt.user)
 			require.NoError(t, err)
@@ -175,14 +181,14 @@ func TestLoginUser(t *testing.T) {
 			if rec.Code == http.StatusOK {
 				user, err := storage.GetUser(t.Context(), tt.user.Login)
 				require.NoError(t, err)
-				password := hash(tt.user.Password, key)
+				password := handler.Hash(tt.user.Password, key)
 				assert.Equal(t, password, user.PasswordHash)
 				assert.Equal(t, tt.user.Login, user.Login)
 				authHeader := rec.Header().Get("Authorization")
 				require.NotEmpty(t, authHeader)
 				assert.Contains(t, authHeader, "Bearer ")
 				tokenString := bytes.TrimPrefix([]byte(authHeader), []byte("Bearer "))
-				expUser, err := GetUserLogin(string(tokenString), key)
+				expUser, err := handler.GetUserLogin(string(tokenString), key)
 				require.NoError(t, err)
 				assert.Equal(t, tt.user.Login, expUser.Login)
 				assert.Equal(t, 1, expUser.ID)

@@ -17,7 +17,6 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-var expLogin = "login1"
 var expNumber = "12345678903"
 
 func TestSaveOrderHandler(t *testing.T) {

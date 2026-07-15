@@ -212,6 +212,7 @@ func TestWithdrawtBalanceHandler(t *testing.T) {
 			bodyBytes, err := json.Marshal(tt.body)
 			require.NoError(t, err)
 			req := httptest.NewRequest(http.MethodPost, "/api/user/balance/withdraw", bytes.NewReader(bodyBytes))
+			req.Header.Set("Content-Type", "application/json")
 			rec := httptest.NewRecorder()
 			logger := zaptest.NewLogger(t)
 			h := handler.NewHandlers(storage, logger.Sugar())

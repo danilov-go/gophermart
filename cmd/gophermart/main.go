@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"github.com/danilov-go/gophermart/internal/accrual"
 	"github.com/danilov-go/gophermart/internal/config"
@@ -22,7 +23,7 @@ func main() {
 		},
 		DatabaseUri:   "",
 		AccrualAddres: "",
-		Key:           "my_secret_key",
+		Key:           "secret_key",
 		Interval:      5,
 	}
 	if err := logger.Initialize("info"); err != nil {
@@ -41,7 +42,7 @@ func main() {
 			logger.Log.Sugar().Infow("база данных недоступна", "error", err)
 			storage = memory.InitMemStorage()
 		} else {
-			storage = handler.NewErrorMiddleware(db)
+			storage = handler.NewErrorMiddleware(db, 2*time.Second, 2*time.Second)
 		}
 	}
 	agent := accrual.New(configs.Interval, configs.AccrualAddres, logger.Log.Sugar(), storage)

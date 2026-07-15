@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/danilov-go/gophermart/internal/models"
 )
@@ -47,6 +48,11 @@ func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
 func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
+		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			h.logger.Errorw("не соответствие content-type", "content-type", r.Header.Get("Content-Type"))
+			http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
+			return
+		}
 		var buf bytes.Buffer
 		var order orderBalance
 		_, err := buf.ReadFrom(r.Body)

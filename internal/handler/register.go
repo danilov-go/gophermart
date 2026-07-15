@@ -19,7 +19,7 @@ type loginPassword struct {
 	Password string `json:"password"`
 }
 
-func buildJWTString(id int, login, key string) (string, error) {
+func BuildJWTString(id int, login, key string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
@@ -34,7 +34,7 @@ func buildJWTString(id int, login, key string) (string, error) {
 	return tokenString, nil
 }
 
-func hash(password, key string) string {
+func Hash(password, key string) string {
 	hs := hmac.New(sha256.New, []byte(key))
 	hs.Write([]byte(password))
 	hashedPassword := hs.Sum(nil)
@@ -69,7 +69,7 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 			return
 		}
-		hashStringPassword := hash(user.Password, key)
+		hashStringPassword := Hash(user.Password, key)
 		id, err := h.storage.SaveUser(ctx, user.Login, hashStringPassword)
 		if err != nil {
 			if errors.Is(err, models.ErrUserAlreadyExists) {
@@ -81,7 +81,7 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
-		signedToken, err := buildJWTString(id, user.Login, key)
+		signedToken, err := BuildJWTString(id, user.Login, key)
 		if err != nil {
 			h.logger.Errorw("ошибка аутентификации", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -112,13 +112,13 @@ func (h *BalanceHandler) LoginUser(key string) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
-		hashStringPassword := hash(user.Password, key)
+		hashStringPassword := Hash(user.Password, key)
 		if !hmac.Equal([]byte(hashStringPassword), []byte(store.PasswordHash)) {
 			h.logger.Errorw("пароли не совпадают")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized) // 401
 			return
 		}
-		signedToken, err := buildJWTString(store.ID, user.Login, key)
+		signedToken, err := BuildJWTString(store.ID, user.Login, key)
 		if err != nil {
 			h.logger.Errorw("ошибка аутентификации", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
