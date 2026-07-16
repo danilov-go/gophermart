@@ -10,21 +10,30 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Claims содержит полезную нагрузку JWT-токена.
 type Claims struct {
-	ID    int    `json:"id"`
+	// ID содержит уникальный идентификатор пользователя.
+	ID int `json:"id"`
+	// Login содержит логин пользователя.
 	Login string `json:"login"`
 	jwt.RegisteredClaims
 }
 
+// AuthUser содержит данные об авторизованном пользователе.
 type AuthUser struct {
-	ID    int
+	// ID содержит уникальный идентификатор пользователя.
+	ID int
+	// Login содержит логин пользователя.
 	Login string
 }
 
-const tokenExp = time.Hour * 24
+// TokenExp определяет время жизни JWT-токена.
+const TokenExp = time.Hour * 24
 
+// LoginHandlerFunc определяет тип функции-обработчика для запросов, требующих авторизации.
 type LoginHandlerFunc func(w http.ResponseWriter, r *http.Request, user AuthUser)
 
+// GetUserLogin проверяет валидность токена и возвращает данные пользователя.
 func GetUserLogin(tokenString, key string) (AuthUser, error) {
 	var user AuthUser
 	claims := &Claims{}
@@ -47,6 +56,7 @@ func GetUserLogin(tokenString, key string) (AuthUser, error) {
 	return user, nil
 }
 
+// AuthMiddleware проверяет наличие JWT-токена в заголовке Authorization и валидирует его.
 func AuthMiddleware(key string, h LoginHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")

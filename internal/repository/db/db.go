@@ -1,3 +1,4 @@
+// Package db реализует хранилище данных в базе PostgreSQL.
 package db
 
 import (
@@ -21,6 +22,7 @@ func NewStorageDB(sql *sql.DB) storageDB {
 	}
 }
 
+// InitDB инициализирует подключение к PostgreSQL и применяет миграции базы данных.
 func InitDB(ps string) (*storageDB, error) {
 	db, err := sql.Open("pgx", ps)
 	if err != nil {
@@ -49,6 +51,7 @@ func InitDB(ps string) (*storageDB, error) {
 	}, nil
 }
 
+// Ping проверяет доступность базы данных.
 func (d *storageDB) Ping(ctx context.Context) error {
 	err := d.db.PingContext(ctx)
 	if err != nil {

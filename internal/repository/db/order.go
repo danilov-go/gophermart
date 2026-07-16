@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// SaveOrders сохраняет новый заказ в базе данных.
 func (d *storageDB) SaveOrders(ctx context.Context, number string, orders models.Order) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -35,6 +36,7 @@ func (d *storageDB) SaveOrders(ctx context.Context, number string, orders models
 	return nil
 }
 
+// GetOrders возвращает отсортированный по времени список заказов пользователя.
 func (d *storageDB) GetOrders(ctx context.Context, id int) ([]models.Orders, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -62,6 +64,7 @@ func (d *storageDB) GetOrders(ctx context.Context, id int) ([]models.Orders, err
 	return orders, nil
 }
 
+// GetUnOrders возвращает список всех необработанных заказов.
 func (d *storageDB) GetUnOrders(ctx context.Context) ([]models.Orders, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -86,6 +89,7 @@ func (d *storageDB) GetUnOrders(ctx context.Context) ([]models.Orders, error) {
 	return orders, nil
 }
 
+// UpdateStatus обновляет статус и сумму начисления для заказа.
 func (d *storageDB) UpdateStatus(ctx context.Context, accrual models.Accrual) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()

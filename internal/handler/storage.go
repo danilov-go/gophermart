@@ -1,3 +1,4 @@
+// Package handler реализует HTTP-интерфейс приложения.
 package handler
 
 import (
@@ -15,18 +16,21 @@ type log interface {
 	Errorw(msg string, keysAndValues ...any)
 }
 
-type BalanceHandler struct {
+// Handler связывает HTTP-запросов с хранилищем данных.
+type Handler struct {
 	storage Storage
 	logger  log
 }
 
-func NewHandlers(storage Storage, l log) *BalanceHandler {
-	return &BalanceHandler{
+// NewHandlers создает новый экземпляр Handler.
+func NewHandlers(storage Storage, l log) *Handler {
+	return &Handler{
 		storage: storage,
 		logger:  l,
 	}
 }
 
+// Storage определяет методы для взаимодействия с хранилищем.
 type Storage interface {
 	Ping(ctx context.Context) error
 	SaveUser(ctx context.Context, login, passwordHash string) (int, error)
@@ -40,19 +44,25 @@ type Storage interface {
 	UpdateStatus(ctx context.Context, accrual models.Accrual) error
 }
 
+// PGErrorClassification определяет категорию ошибки базы данных для повторных попыток выполнения.
 type PGErrorClassification int
 
 const (
+	// NonRetriable определяет ошибку, которую нельзя исправить повторным запросом.
 	NonRetriable PGErrorClassification = iota
+	// Retriable определяет временную ошибку подключения, которую можно повторить.
 	Retriable
 )
 
+// PostgresErrorClassifier проверяет типы ошибок PostgreSQL на возможность повтора операции.
 type PostgresErrorClassifier struct{}
 
+// NewPostgresErrorClassifier создает новый экземпляр классификатора ошибок.
 func NewPostgresErrorClassifier() *PostgresErrorClassifier {
 	return &PostgresErrorClassifier{}
 }
 
+// Classify классифицирует ошибку для определения возможности повторных попыток.
 func (c *PostgresErrorClassifier) Classify(err error) PGErrorClassification {
 	if err == nil {
 		return NonRetriable
@@ -74,6 +84,7 @@ func classifyPgError(pgErr *pgconn.PgError) PGErrorClassification {
 	return NonRetriable
 }
 
+// ErrorStorageMiddleware реализует механизма повторных попыток при сетевых сбоях.
 type ErrorStorageMiddleware struct {
 	next       Storage
 	classifier *PostgresErrorClassifier
@@ -81,6 +92,7 @@ type ErrorStorageMiddleware struct {
 	interval   time.Duration
 }
 
+// NewErrorMiddleware создает новый экземпляр ErrorStorageMiddleware.
 func NewErrorMiddleware(next Storage, duration, interval time.Duration) *ErrorStorageMiddleware {
 	return &ErrorStorageMiddleware{
 		next:       next,
@@ -93,7 +105,6 @@ func NewErrorMiddleware(next Storage, duration, interval time.Duration) *ErrorSt
 func (rm *ErrorStorageMiddleware) replay(ctx context.Context, operation func() error) error {
 	const maxRetries = 3
 	duration := rm.duration
-
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		err := operation()
 		if err == nil {
@@ -119,6 +130,7 @@ func (rm *ErrorStorageMiddleware) replay(ctx context.Context, operation func() e
 	return nil
 }
 
+// SaveUser сохраняет нового пользователя в базе данных и возвращает его ID с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) SaveUser(ctx context.Context, login, passwordHash string) (int, error) {
 	var id int
 	operation := func() error {
@@ -130,6 +142,7 @@ func (rm *ErrorStorageMiddleware) SaveUser(ctx context.Context, login, passwordH
 	return id, err
 }
 
+// GetUser возвращает данные пользователя из базы данных с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) GetUser(ctx context.Context, login string) (models.User, error) {
 	var user models.User
 	operation := func() error {
@@ -141,6 +154,7 @@ func (rm *ErrorStorageMiddleware) GetUser(ctx context.Context, login string) (mo
 	return user, err
 }
 
+// SaveOrders сохраняет новый заказ в базе данных с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) SaveOrders(ctx context.Context, number string, orders models.Order) error {
 	operation := func() error {
 		return rm.next.SaveOrders(ctx, number, orders)
@@ -148,6 +162,7 @@ func (rm *ErrorStorageMiddleware) SaveOrders(ctx context.Context, number string,
 	return rm.replay(ctx, operation)
 }
 
+// GetOrders возвращает отсортированный по времени список заказов пользователя с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) GetOrders(ctx context.Context, id int) ([]models.Orders, error) {
 	var orders []models.Orders
 	operation := func() error {
@@ -159,6 +174,7 @@ func (rm *ErrorStorageMiddleware) GetOrders(ctx context.Context, id int) ([]mode
 	return orders, err
 }
 
+// GetBalance возвращает баланс и общую сумму списаний пользователя из базы данных с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) GetBalance(ctx context.Context, id int) (models.Balance, error) {
 	var balance models.Balance
 	operation := func() error {
@@ -170,6 +186,7 @@ func (rm *ErrorStorageMiddleware) GetBalance(ctx context.Context, id int) (model
 	return balance, err
 }
 
+// Withdraw списывает баллы пользователя на указанный заказ в базе данных с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) Withdraw(ctx context.Context, id int, order string, bal float64) error {
 	operation := func() error {
 		return rm.next.Withdraw(ctx, id, order, bal)
@@ -177,6 +194,7 @@ func (rm *ErrorStorageMiddleware) Withdraw(ctx context.Context, id int, order st
 	return rm.replay(ctx, operation)
 }
 
+// GetWithdraw возвращает отсортированную по времени историю списаний пользователя из базы данных с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) GetWithdraw(ctx context.Context, id int) ([]models.Withdraw, error) {
 	var withdraw []models.Withdraw
 	operation := func() error {
@@ -188,6 +206,7 @@ func (rm *ErrorStorageMiddleware) GetWithdraw(ctx context.Context, id int) ([]mo
 	return withdraw, err
 }
 
+// GetUnOrders возвращает список всех необработанных заказов с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) GetUnOrders(ctx context.Context) ([]models.Orders, error) {
 	var orders []models.Orders
 	operation := func() error {
@@ -199,6 +218,7 @@ func (rm *ErrorStorageMiddleware) GetUnOrders(ctx context.Context) ([]models.Ord
 	return orders, err
 }
 
+// UpdateStatus обновляет статус и сумму начисления для заказа с механизмом повторных попыток.
 func (rm *ErrorStorageMiddleware) UpdateStatus(ctx context.Context, accrual models.Accrual) error {
 	operation := func() error {
 		return rm.next.UpdateStatus(ctx, accrual)
@@ -206,6 +226,7 @@ func (rm *ErrorStorageMiddleware) UpdateStatus(ctx context.Context, accrual mode
 	return rm.replay(ctx, operation)
 }
 
+// Ping выполняет проверку связи с базой данных.
 func (rm *ErrorStorageMiddleware) Ping(ctx context.Context) error {
 	return rm.next.Ping(ctx)
 }

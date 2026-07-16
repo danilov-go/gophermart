@@ -9,6 +9,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/models"
 )
 
+// GetBalance возвращает баланс и общую сумму списаний пользователя из базы данных.
 func (d *storageDB) GetBalance(ctx context.Context, id int) (models.Balance, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -24,6 +25,7 @@ func (d *storageDB) GetBalance(ctx context.Context, id int) (models.Balance, err
 	return user, nil
 }
 
+// Withdraw списывает баллы пользователя на указанный заказ в базе данных.
 func (d *storageDB) Withdraw(ctx context.Context, id int, order string, bal float64) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -50,6 +52,7 @@ func (d *storageDB) Withdraw(ctx context.Context, id int, order string, bal floa
 	return tx.Commit()
 }
 
+// GetWithdraw возвращает отсортированную по времени историю списаний пользователя из базы данных.
 func (d *storageDB) GetWithdraw(ctx context.Context, id int) ([]models.Withdraw, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()

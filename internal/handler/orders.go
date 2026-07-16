@@ -35,7 +35,8 @@ func validLuna(number string) error {
 	return nil
 }
 
-func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
+// SaveOrderHandler возвращает обработчик для загрузки нового номера заказа пользователем.
+func (h *Handler) SaveOrderHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "text/plain") {
@@ -86,7 +87,8 @@ func (h *BalanceHandler) SaveOrderHandler() LoginHandlerFunc {
 	}
 }
 
-func (h *BalanceHandler) GetOrderHandler() LoginHandlerFunc {
+// GetOrderHandler возвращает обработчик для получения списка всех заказов пользователя.
+func (h *Handler) GetOrderHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		orders, err := h.storage.GetOrders(ctx, user.ID)

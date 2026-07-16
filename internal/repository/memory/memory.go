@@ -1,3 +1,4 @@
+// Package memory реализует хранилище данных в оперативной памяти.
 package memory
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/models"
 )
 
+// MemStorage реализует хранилище данных в оперативной памяти.
 type MemStorage struct {
 	mu          sync.RWMutex
 	nextID      int
@@ -16,6 +18,7 @@ type MemStorage struct {
 	withdrawals map[int][]models.Withdraw
 }
 
+// InitMemStorage создает новый экземпляр MemStorage.
 func InitMemStorage() *MemStorage {
 	return &MemStorage{
 		nextID:      1,
@@ -26,6 +29,7 @@ func InitMemStorage() *MemStorage {
 	}
 }
 
+// Ping проверяет доступность хранилища.
 func (m *MemStorage) Ping(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err

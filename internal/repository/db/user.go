@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// SaveUser сохраняет нового пользователя в базе данных и возвращает его ID.
 func (d *storageDB) SaveUser(ctx context.Context, login, passwordHash string) (int, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -27,6 +28,7 @@ func (d *storageDB) SaveUser(ctx context.Context, login, passwordHash string) (i
 	return id, nil
 }
 
+// GetUser возвращает данные пользователя из базы данных.
 func (d *storageDB) GetUser(ctx context.Context, login string) (models.User, error) {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()

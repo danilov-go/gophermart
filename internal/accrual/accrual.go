@@ -1,3 +1,4 @@
+// Package accrual реализует агент для периодического опроса внешней системы расчета баллов.
 package accrual
 
 import (
@@ -14,30 +15,34 @@ type log interface {
 	Errorw(msg string, keysAndValues ...any)
 }
 
+// Storage определяет методы для взаимодействия с хранилищем.
 type Storage interface {
 	GetUnOrders(ctx context.Context) ([]models.Orders, error)
 	UpdateStatus(ctx context.Context, accrual models.Accrual) error
 }
 
+// Agent опрашивает внешний сервис расчета баллов.
 type Agent struct {
-	Client   *resty.Client
+	client   *resty.Client
 	interval int
 	s        Storage
 	logger   log
 }
 
+// New создает новый экземпляр Agent.
 func New(interval int, addres string, l log, s Storage) *Agent {
 	client := resty.New()
 	client.SetTimeout(time.Second * 5)
 	client.SetBaseURL(addres)
 	return &Agent{
-		Client:   client,
+		client:   client,
 		interval: interval,
 		s:        s,
 		logger:   l,
 	}
 }
 
+// Worker запускает фоновый процесс опроса статусов необработанных заказов.
 func (a *Agent) Worker(ctx context.Context) {
 	duration := time.Duration(a.interval) * time.Second
 	ticker := time.NewTicker(duration)
@@ -58,7 +63,7 @@ func (a *Agent) Worker(ctx context.Context) {
 					return
 				}
 				var accrual models.Accrual
-				resp, err := a.Client.R().
+				resp, err := a.client.R().
 					SetContext(ctx).
 					SetPathParam("number", order.Number).
 					SetResult(&accrual).

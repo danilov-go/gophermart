@@ -15,7 +15,8 @@ type orderBalance struct {
 	Sum   float64 `json:"sum"`
 }
 
-func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
+// GetBalanceHandler возвращает обработчик для получения текущего баланса и суммы списаний пользователя.
+func (h *Handler) GetBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		balance, err := h.storage.GetBalance(ctx, user.ID)
@@ -45,7 +46,8 @@ func (h *BalanceHandler) GetBalanceHandler() LoginHandlerFunc {
 	}
 }
 
-func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
+// WithdrawtBalanceHandler возвращает обработчик для запроса на списание баллов в счет нового заказа.
+func (h *Handler) WithdrawtBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
@@ -93,7 +95,8 @@ func (h *BalanceHandler) WithdrawtBalanceHandler() LoginHandlerFunc {
 	}
 }
 
-func (h *BalanceHandler) GetWithdrawalsBalanceHandler() LoginHandlerFunc {
+// GetWithdrawalsBalanceHandler возвращает обработчик для получения истории списаний баллов пользователя.
+func (h *Handler) GetWithdrawalsBalanceHandler() LoginHandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request, user AuthUser) {
 		ctx := r.Context()
 		withdraws, err := h.storage.GetWithdraw(ctx, user.ID)

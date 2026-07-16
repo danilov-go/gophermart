@@ -19,10 +19,11 @@ type loginPassword struct {
 	Password string `json:"password"`
 }
 
+// BuildJWTString создает строку JWT-токена для указанного пользователя.
 func BuildJWTString(id int, login, key string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExp)),
 		},
 		ID:    id,
 		Login: login,
@@ -34,6 +35,7 @@ func BuildJWTString(id int, login, key string) (string, error) {
 	return tokenString, nil
 }
 
+// Hash возвращает HMAC-SHA256 хеш пароля.
 func Hash(password, key string) string {
 	hs := hmac.New(sha256.New, []byte(key))
 	hs.Write([]byte(password))
@@ -55,7 +57,8 @@ func decode(r *http.Request) (loginPassword, error) {
 	return user, nil
 }
 
-func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
+// RegisterUser возвращает обработчик для регистрации нового пользователя.
+func (h *Handler) RegisterUser(key string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		user, err := decode(r)
@@ -92,7 +95,8 @@ func (h *BalanceHandler) RegisterUser(key string) http.HandlerFunc {
 	})
 }
 
-func (h *BalanceHandler) LoginUser(key string) http.HandlerFunc {
+// LoginUser возвращает обработчик для аутентификации существующего пользователя.
+func (h *Handler) LoginUser(key string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		user, err := decode(r)

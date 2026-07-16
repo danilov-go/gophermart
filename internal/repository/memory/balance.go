@@ -8,6 +8,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/models"
 )
 
+// GetBalance возвращает баланс и общую сумму списаний пользователя из оперативной памяти.
 func (m *MemStorage) GetBalance(ctx context.Context, id int) (models.Balance, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -31,6 +32,7 @@ func (m *MemStorage) GetBalance(ctx context.Context, id int) (models.Balance, er
 	return userBalance, nil
 }
 
+// Withdraw списывает баллы пользователя на указанный заказ в оперативной памяти.
 func (m *MemStorage) Withdraw(ctx context.Context, id int, order string, bal float64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -59,6 +61,7 @@ func (m *MemStorage) Withdraw(ctx context.Context, id int, order string, bal flo
 	return nil
 }
 
+// GetWithdraw возвращает отсортированную по времени историю списаний пользователя из оперативной памяти.
 func (m *MemStorage) GetWithdraw(ctx context.Context, id int) ([]models.Withdraw, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

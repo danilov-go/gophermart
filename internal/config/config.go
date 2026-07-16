@@ -1,3 +1,4 @@
+// Package config управляет конфигурацией приложения.
 package config
 
 import (
@@ -11,26 +12,37 @@ import (
 	"github.com/caarlos0/env/v11"
 )
 
+// NetAddress определяет адрес сервера.
 type NetAddress struct {
 	Host string
 	Port int
 }
 
+// ConfigServer определяет конфигурацию приложения.
 type ConfigServer struct {
-	Net           NetAddress `env:"RUN_ADDRESS"`
-	DatabaseUri   string     `env:"DATABASE_URI"`
-	AccrualAddres string     `env:"ACCRUAL_SYSTEM_ADDRESS"`
-	Key           string     `env:"SECRET_KEY"`
-	Interval      int        `env:"INTERVAL"`
+	// Net содержит сетевой адрес для запуска сервера.
+	Net NetAddress `env:"RUN_ADDRESS"`
+	// DatabaseUri содержит строку подключения к базе данных.
+	DatabaseUri string `env:"DATABASE_URI"`
+	// AccrualAddres содержит адрес внешней системы начисления баллов.
+	AccrualAddres string `env:"ACCRUAL_SYSTEM_ADDRESS"`
+	// Key содержит секретный ключ для подписи JWT-токенов.
+	Key string `env:"SECRET_KEY"`
+	// Interval содержит интервал опроса внешней системы в секундах.
+	Interval int `env:"INTERVAL"`
 }
 
+// String возвращает строковое представление сетевого адреса в формате host:port.
 func (n NetAddress) String() string {
 	return n.Host + ":" + strconv.Itoa(n.Port)
 }
 
+// UnmarshalText десериализует сетевой адрес из текстового формата для библиотеки env.
 func (n *NetAddress) UnmarshalText(adr []byte) error {
 	return n.Set(string(adr))
 }
+
+// Set парсит строку в формате host:port и валидирует ее для пакета flag.
 func (n *NetAddress) Set(s string) error {
 	hp := strings.Split(s, ":")
 	if len(hp) != 2 {
@@ -45,6 +57,7 @@ func (n *NetAddress) Set(s string) error {
 	return nil
 }
 
+// Get парсит конфигурацию приложения.
 func (s *ConfigServer) Get() {
 	f := flag.NewFlagSet("Run server", flag.ContinueOnError)
 	f.Var(&s.Net, "a", "Net address host:port")

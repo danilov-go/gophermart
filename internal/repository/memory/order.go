@@ -7,6 +7,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/models"
 )
 
+// SaveOrders сохраняет новый заказ в оперативной памяти.
 func (m *MemStorage) SaveOrders(ctx context.Context, number string, newOrder models.Order) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -21,6 +22,7 @@ func (m *MemStorage) SaveOrders(ctx context.Context, number string, newOrder mod
 	return nil
 }
 
+// GetOrders возвращает отсортированный по времени список заказов пользователя.
 func (m *MemStorage) GetOrders(ctx context.Context, id int) ([]models.Orders, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -45,6 +47,7 @@ func (m *MemStorage) GetOrders(ctx context.Context, id int) ([]models.Orders, er
 	return userOrders, nil
 }
 
+// GetUnOrders возвращает список всех необработанных заказов.
 func (m *MemStorage) GetUnOrders(ctx context.Context) ([]models.Orders, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -63,6 +66,7 @@ func (m *MemStorage) GetUnOrders(ctx context.Context) ([]models.Orders, error) {
 	return orders, nil
 }
 
+// UpdateStatus обновляет статус и сумму начисления для заказа.
 func (m *MemStorage) UpdateStatus(ctx context.Context, accrual models.Accrual) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
