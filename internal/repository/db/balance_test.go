@@ -172,8 +172,8 @@ func Test_storageDB_GetWithdraw(t *testing.T) {
 					WillReturnRows(rows)
 			},
 			want: []models.Withdraw{
-				{Order: expNumber, Sum: 100.0, Processed_at: now},
-				{Order: expNumber + "22", Sum: 200.5, Processed_at: now},
+				{Order: expNumber, Sum: 100.0, ProcessedAt: now},
+				{Order: expNumber + "22", Sum: 200.5, ProcessedAt: now},
 			},
 			wantErr: nil,
 		},

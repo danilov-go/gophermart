@@ -2,6 +2,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -31,4 +32,9 @@ func New(port string, l log, r http.Handler) *Server {
 func (serv *Server) Run() error {
 	serv.Logger.Infow("Running server", "address", serv.Server.Addr)
 	return serv.Server.ListenAndServe()
+}
+
+// Shutdown останавливает HTTP-сервер.
+func (serv *Server) Stop(ctx context.Context) error {
+	return serv.Server.Shutdown(ctx)
 }

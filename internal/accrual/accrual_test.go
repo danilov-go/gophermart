@@ -86,7 +86,7 @@ func TestWorker_TableDriven(t *testing.T) {
 				UploadedAt: time.Now(),
 			})
 			require.NoError(t, err)
-			agent := accrual.New(1, server.URL, logger.Sugar(), storage)
+			agent := accrual.New(1, 60, server.URL, logger.Sugar(), storage)
 			ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
 			defer cancel()
 			go agent.Worker(ctx)

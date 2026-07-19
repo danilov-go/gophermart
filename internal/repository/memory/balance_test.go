@@ -113,9 +113,9 @@ func TestMemStorage_GetWithdraw(t *testing.T) {
 			id:   7,
 			want: []models.Withdraw{
 				{
-					Order:        expNumber,
-					Sum:          expBal,
-					Processed_at: now,
+					Order:       expNumber,
+					Sum:         expBal,
+					ProcessedAt: now,
 				},
 			},
 			wantErr: nil,
@@ -145,7 +145,7 @@ func TestMemStorage_GetWithdraw(t *testing.T) {
 			if tt.wantErr == nil {
 				assert.Equal(t, withdraw[0].Order, tt.want[0].Order)
 				assert.Equal(t, withdraw[0].Sum, tt.want[0].Sum)
-				assert.NotZero(t, t, withdraw[0].Processed_at)
+				assert.NotZero(t, t, withdraw[0].ProcessedAt)
 			}
 		})
 	}

@@ -53,9 +53,9 @@ func (m *MemStorage) Withdraw(ctx context.Context, id int, order string, bal flo
 		return models.ErrInsufficientFunds
 	}
 	withdraw := models.Withdraw{
-		Order:        order,
-		Sum:          bal,
-		Processed_at: time.Now(),
+		Order:       order,
+		Sum:         bal,
+		ProcessedAt: time.Now(),
 	}
 	m.withdrawals[id] = append(m.withdrawals[id], withdraw)
 	return nil
@@ -70,7 +70,7 @@ func (m *MemStorage) GetWithdraw(ctx context.Context, id int) ([]models.Withdraw
 		return nil, models.ErrNoWithdrawalsFound
 	}
 	slices.SortFunc(withdraw, func(i, j models.Withdraw) int {
-		return i.Processed_at.Compare(j.Processed_at)
+		return i.ProcessedAt.Compare(j.ProcessedAt)
 	})
 	return withdraw, nil
 }

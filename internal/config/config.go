@@ -4,7 +4,6 @@ package config
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -30,6 +29,8 @@ type ConfigServer struct {
 	Key string `env:"SECRET_KEY"`
 	// Interval содержит интервал опроса внешней системы в секундах.
 	Interval int `env:"INTERVAL"`
+	// RetryDefault содержит дефолтное время ожидания в секундах при ошибке 429.
+	RetryDefault int `env:"RETRY_DEFAULT"`
 }
 
 // String возвращает строковое представление сетевого адреса в формате host:port.
@@ -58,21 +59,21 @@ func (n *NetAddress) Set(s string) error {
 }
 
 // Get парсит конфигурацию приложения.
-func (s *ConfigServer) Get() {
+func (s *ConfigServer) Get() error {
 	f := flag.NewFlagSet("Run server", flag.ContinueOnError)
 	f.Var(&s.Net, "a", "Net address host:port")
 	f.StringVar(&s.DatabaseUri, "d", s.DatabaseUri, "DATABASE_URI")
 	f.StringVar(&s.AccrualAddres, "r", s.AccrualAddres, "ACCRUAL_SYSTEM_ADDRESS")
 	f.StringVar(&s.Key, "k", s.Key, "SECRET_KEY")
 	f.IntVar(&s.Interval, "i", s.Interval, "INTERVAL")
+	f.IntVar(&s.RetryDefault, "t", s.RetryDefault, "RETRY_DEFAULT")
 	err := f.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
 	err = env.Parse(s)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }

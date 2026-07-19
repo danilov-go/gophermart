@@ -85,7 +85,7 @@ type Withdraw struct {
 	// Sum содержит сумму списания.
 	Sum float64 `json:"sum"`
 	// ProcessedAt содержит дату и время проведения списания.
-	Processed_at time.Time `json:"processed_at"`
+	ProcessedAt time.Time `json:"processed_at"`
 }
 
 // Accrual содержит структуру ответа от внешней системы начислений.

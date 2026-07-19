@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"net/http"
 	"time"
 
 	"github.com/danilov-go/gophermart/internal/accrual"
@@ -13,6 +15,7 @@ import (
 	"github.com/danilov-go/gophermart/internal/server"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -25,28 +28,37 @@ func main() {
 		AccrualAddres: "",
 		Key:           "secret_key",
 		Interval:      5,
+		RetryDefault:  60,
 	}
-	if err := logger.Initialize("info"); err != nil {
+	err := logger.Initialize("info")
+	if err != nil {
 		panic(err)
 	}
-	configs.Get()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	err = configs.Get()
+	if err != nil {
+		logger.Log.Sugar().Fatalw("ошибка загрузки конфигурации", "error", err)
+	}
+	g, ctx := errgroup.WithContext(context.Background())
 	var storage handler.Storage
-	db, err := db.InitDB(configs.DatabaseUri)
+	dbStorage, err := db.InitDB(configs.DatabaseUri)
 	if err != nil {
 		logger.Log.Sugar().Infow("ошибка инициализации базы данных", "error", err)
 		storage = memory.InitMemStorage()
 	} else {
-		if err = db.Ping(ctx); err != nil {
+		pingCtx, pingCancel := context.WithTimeout(ctx, 3*time.Second)
+		err = dbStorage.Ping(pingCtx)
+		pingCancel()
+		if err != nil {
 			logger.Log.Sugar().Infow("база данных недоступна", "error", err)
 			storage = memory.InitMemStorage()
 		} else {
-			storage = handler.NewErrorMiddleware(db, 2*time.Second, 2*time.Second)
+			storage = handler.NewErrorMiddleware(dbStorage, 2*time.Second, 2*time.Second)
 		}
 	}
-	agent := accrual.New(configs.Interval, configs.AccrualAddres, logger.Log.Sugar(), storage)
-	go agent.Worker(ctx)
+	g.Go(func() error {
+		agent := accrual.New(configs.Interval, configs.RetryDefault, configs.AccrualAddres, logger.Log.Sugar(), storage)
+		return agent.Worker(ctx)
+	})
 	h := handler.NewHandlers(storage, logger.Log.Sugar())
 	r := chi.NewRouter()
 	r.Use(middleware.StripSlashes)
@@ -62,7 +74,21 @@ func main() {
 		r.Get("/withdrawals", handler.AuthMiddleware(configs.Key, h.GetWithdrawalsBalanceHandler()))
 	})
 	serv := server.New(configs.Net.String(), logger.Log.Sugar(), r)
-	if err := serv.Run(); err != nil {
-		panic(err)
+	g.Go(func() error {
+		if err := serv.Run(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	})
+	g.Go(func() error {
+		<-ctx.Done()
+		stopCtx, stopCancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer stopCancel()
+		return serv.Stop(stopCtx)
+	})
+	if err := g.Wait(); err != nil {
+		if !errors.Is(ctx.Err(), context.Canceled) {
+			logger.Log.Sugar().Fatalw("ошибка в фоновом процессе", "error", err)
+		}
 	}
 }
